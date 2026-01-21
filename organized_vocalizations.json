@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "id": "mock_1",
+      "species": "Mimus polyglottos",
+      "type": "Song",
+      "location": "United States",
+      "filename": "mock_1.mp3"
+    }
+  ],
+  "species_list": [
+    "Mimus polyglottos"
+  ],
+  "vocalization_types": [
+    "Song"
+  ]
+}
