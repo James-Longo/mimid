@@ -39,3 +39,9 @@ Thumbs.db
 .venv
 venv/
 ENV/
+mimid-*.json
+*.db
+# Large data files
+all_species.json
+organized_vocalizations.json
+audio/
