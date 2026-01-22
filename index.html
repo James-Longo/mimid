@@ -37,8 +37,11 @@
 
                 <div class="settings-group">
                     <h4>Location & Type</h4>
-                    <input type="text" id="globalCountry" class="search-input"
-                        placeholder="Country (e.g. United States)" autocomplete="on">
+                    <div style="position: relative;">
+                        <input type="text" id="globalRegion" class="search-input"
+                            placeholder="Region (e.g. World, North America, New York)" autocomplete="off">
+                        <div id="regionResults" class="dropdown-results hidden"></div>
+                    </div>
                     <select id="globalType" class="search-input" style="cursor: pointer;">
                         <option value="">Vocalization: Any</option>
                         <option value="song">Songs Only</option>
@@ -151,8 +154,12 @@
         </main>
     </div>
 
+    <div id="regionSearchAutocomplete" class="dropdown-results hidden"
+        style="left:0; right:0; top:100%; max-height:200px;"></div>
+
     <audio id="birdAudio"></audio>
 
+    <script src="regions_db.js"></script>
     <script>
         let currentPool = [];
         let currentRecord = null;
@@ -169,18 +176,33 @@
         const speciesMetadataCache = new Map();
 
         const xcApiKeyInput = document.getElementById('xcApiKey');
-        const globalCountryInput = document.getElementById('globalCountry');
+        const globalRegionInput = document.getElementById('globalRegion');
+        const regionResults = document.getElementById('regionResults');
         const globalTypeInput = document.getElementById('globalType');
         const createSessionBtn = document.getElementById('createSessionBtn');
         const loadingBanner = document.getElementById('loadingBanner');
         const loadingStatus = document.getElementById('loadingStatus');
         const progressBarFill = document.getElementById('progressBarFill');
-        const poolStatus = document.getElementById('poolStatus');
         const startBtn = document.getElementById('startBtn');
         const toggleAdvanced = document.getElementById('toggleAdvanced');
         const advancedSettings = document.getElementById('advancedSettings');
 
-        function getMetadata() { return JSON.parse(localStorage.getItem('mimid_metadata') || '{}'); }
+        // Setup region search
+        globalRegionInput.oninput = (e) => {
+            const term = e.target.value.toLowerCase();
+            if (term.length < 1) { regionResults.classList.add('hidden'); return; }
+            const matches = REGIONS.filter(r => r.name.toLowerCase().includes(term));
+            regionResults.innerHTML = '';
+            if (matches.length === 0) { regionResults.classList.add('hidden'); return; }
+            matches.forEach(m => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.innerText = `${m.name} (${m.type})`;
+                item.onclick = () => { globalRegionInput.value = m.name; regionResults.classList.add('hidden'); };
+                regionResults.appendChild(item);
+            });
+            regionResults.classList.remove('hidden');
+        };
 
         async function fetchSpeciesData(species) {
             if (speciesMetadataCache.has(species)) return speciesMetadataCache.get(species);
@@ -190,9 +212,22 @@
             const maskKey = (key) => key.length > 8 ? key.substring(0, 4) + '...' + key.substring(key.length - 4) : '****';
 
             let q = `sp:"${sciName}" q:A len:10-60`;
-            const gCountry = globalCountryInput.value.trim();
+            const gRegion = globalRegionInput.value.trim();
             const gType = globalTypeInput.value.trim();
-            if (gCountry) q += ` cnt:"${gCountry}"`;
+
+            // Region handling
+            let bboxQuery = "";
+            let selectedRegion = REGIONS.find(r => r.name === gRegion);
+            if (selectedRegion && selectedRegion.bbox) {
+                bboxQuery = getRegionParams(gRegion);
+                // q += ` ${bboxQuery}`; // Add box parameter to query string? NO, Xeno-Canto doc says box is a separate parameter or part of query?
+                // Doc example: query=box:-1.16,94.62,+grp:grasshoppers
+                q += ` ${bboxQuery}`;
+            } else if (gRegion && !selectedRegion) {
+                // Fallback to country/location search if not in database
+                q += ` cnt:"${gRegion}"`;
+            }
+
             if (gType) q += ` type:"${gType}"`;
 
             console.log(`Fetching XC data for ${species}: [${q}] (Key: ${maskKey(apiKey)})`);
@@ -218,11 +253,19 @@
                                 if (data.error === "client_error" || msg.toLowerCase().includes("api key")) throw new Error("Invalid or Missing API Key");
                                 throw new Error(msg || "Unknown API Error");
                             }
-                            const recordings = data.recordings || [];
+                            let recordings = data.recordings || [];
                             recordings.forEach(rec => {
                                 const sci = `${rec.gen || ''} ${rec.sp || ''}`.trim();
                                 if (SCI_TO_FAMILY[sci]) rec.family = SCI_TO_FAMILY[sci];
                             });
+
+                            // Client-side region filter (Polygon check)
+                            if (selectedRegion && selectedRegion.polygon) {
+                                const initialCount = recordings.length;
+                                recordings = filterRecordingsByRegion(recordings, selectedRegion.name);
+                                console.log(`Region Filter (${selectedRegion.name}): reduced ${initialCount} -> ${recordings.length}`);
+                            }
+
                             speciesMetadataCache.set(species, recordings);
                             return recordings;
                         } catch (e) {
