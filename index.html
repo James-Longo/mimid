@@ -424,6 +424,7 @@
             isFlipped = false;
             cardContainer.classList.remove('flipped');
             revealBtn.style.display = 'block';
+            revealBtn.innerText = "Reveal Answer";
             ratingButtons.classList.add('hidden-card');
             speciesImageEl.src = ""; speciesImageEl.style.display = 'none'; imageAttributionEl.innerText = "";
             const sci = `${currentRecord.gen} ${currentRecord.sp}`.trim();
@@ -441,7 +442,20 @@
         function playAudio() { birdAudio.play(); viz.style.display = 'flex'; playBtn.style.display = 'none'; pauseBtn.style.display = 'flex'; }
         function pauseAudio() { birdAudio.pause(); viz.style.display = 'none'; pauseBtn.style.display = 'none'; playBtn.style.display = 'flex'; }
 
-        revealBtn.onclick = () => { isFlipped = true; cardContainer.classList.add('flipped'); revealBtn.style.display = 'none'; ratingButtons.classList.remove('hidden-card'); };
+        let isWaitingForNext = false;
+
+        revealBtn.onclick = () => {
+            if (isWaitingForNext) {
+                isWaitingForNext = false;
+                loadNext();
+            } else {
+                isFlipped = true;
+                cardContainer.classList.add('flipped');
+                revealBtn.style.display = 'none';
+                ratingButtons.classList.remove('hidden-card');
+            }
+        };
+
         playBtn.onclick = (e) => { e.stopPropagation(); playAudio(); };
         pauseBtn.onclick = (e) => { e.stopPropagation(); pauseAudio(); };
         cardContainer.onclick = () => { if (birdAudio.paused) playAudio(); else pauseAudio(); };
@@ -454,7 +468,12 @@
             if (grade === 1 || grade === 2) card.easyStreak = 0;
             else { card.easyStreak++; if (card.easyStreak >= 3) { card.mastered = true; currentPool = currentPool.filter(r => String(r.id) !== id); } }
             localStorage.setItem('mimid_metadata', JSON.stringify({ ...meta, [id]: card }));
-            loadNext();
+
+            // Paused flow:
+            ratingButtons.classList.add('hidden-card');
+            revealBtn.innerText = "Next Card";
+            revealBtn.style.display = "block";
+            isWaitingForNext = true;
         });
 
         async function init() {

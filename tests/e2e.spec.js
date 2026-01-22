@@ -51,8 +51,11 @@ test('mimid e2e flow', async ({ page }) => {
     await expect(easyBtn).toBeVisible();
     await easyBtn.click();
 
+    // Verify "Next Card" button appears and click it
+    await expect(revealBtn).toHaveText("Next Card");
+    await revealBtn.click();
+    await expect(revealBtn).toHaveText("Reveal Answer");
+
     // Verify next card is loaded (reveal button should be back or we see a new card)
-    // For now, just checking if we can click it is enough to prove interactivity.
-    // If the bug is "can't respond", the click might not trigger anything or the buttons might not be reachable.
     await expect(revealBtn).toBeVisible();
 });
