@@ -222,6 +222,11 @@
                 const recordings = data.recordings || [];
                 console.log(`Received ${recordings.length} recordings for ${species}`);
 
+                if (data.error) {
+                    console.error(`XC API Error for ${species}:`, data.error);
+                    throw new Error(data.error.message || "Unknown API Error");
+                }
+
                 recordings.forEach(rec => {
                     const sci = `${rec.gen || ''} ${rec.sp || ''}`.trim();
                     if (SCI_TO_FAMILY[sci]) rec.family = SCI_TO_FAMILY[sci];
@@ -231,7 +236,8 @@
                 return recordings;
             } catch (e) {
                 console.error(`XC Fetch failed for ${species}:`, e);
-                return [];
+                // Return a special object to indicate error type
+                return { error: e.message };
             }
         }
 
@@ -327,17 +333,27 @@
 
             if (fetchList.length > 0) {
                 console.log(`Fetching ${fetchList.length} species in batches...`);
-                // Batch requests (5 at a time) to avoid overloading proxies/XC
+                typeFilters.innerHTML = `Loading ${fetchList.length} species...`;
+
                 const batchSize = 5;
+                let errorCount = 0;
+                let lastError = "";
+
                 for (let i = 0; i < fetchList.length; i += batchSize) {
                     const batch = fetchList.slice(i, i + batchSize);
                     const batchResults = await Promise.allSettled(batch.map(sp => fetchSpeciesData(sp)));
 
                     batchResults.forEach((res, idx) => {
                         if (res.status === 'fulfilled') {
-                            allRecordings.push(...res.value);
+                            if (res.value && res.value.error) {
+                                errorCount++;
+                                lastError = res.value.error;
+                            } else {
+                                allRecordings.push(...(res.value || []));
+                            }
                         } else {
                             console.warn(`Failed to fetch ${batch[idx]}`);
+                            errorCount++;
                         }
                     });
 
@@ -345,6 +361,11 @@
                     if (i + batchSize < fetchList.length) {
                         await new Promise(r => setTimeout(r, 600));
                     }
+                }
+
+                if (errorCount > 0 && allRecordings.length === 0) {
+                    typeFilters.innerHTML = `<span style="color:#ff6b6b; font-size:0.9rem;">Fetch Error: ${lastError || "Network failure"}</span>`;
+                    return;
                 }
             }
 
@@ -354,7 +375,7 @@
 
             if (allRecordings.length === 0) {
                 console.warn("No recordings found in total across species.");
-                typeFilters.innerHTML = 'No recordings found';
+                typeFilters.innerHTML = '<span style="color:#aaa;">No recordings match filters</span>';
                 return;
             }
 
