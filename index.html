@@ -65,6 +65,9 @@
             </div>
 
             <button class="create-session-btn" id="createSessionBtn">Create Session</button>
+            <p id="poolStatus"
+                style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; height: 1.2em;">
+            </p>
 
             <div id="advancedSettings" class="hidden"
                 style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
@@ -89,7 +92,7 @@
                     then click Create Session to begin.
                 </p>
                 <div style="color: var(--text-muted); font-size: 0.9rem;">
-                    Session status: <span id="poolStatus">No records loaded</span>
+                    <!-- Session status moved to sidebar -->
                 </div>
                 <button class="primary hidden" id="startBtn"
                     style="font-size: 1.2rem; padding: 1rem 3rem; margin-top: 1.5rem;">Start Quiz</button>
@@ -328,7 +331,7 @@
 
             progressBarFill.style.width = '100%';
             loadingStatus.innerText = `Session Created! Loaded ${currentPool.length} recordings.`;
-            poolStatus.innerText = `${currentPool.length} recordings ready.`;
+            document.getElementById('poolStatus').innerText = `Session Ready: ${currentPool.length} recordings.`;
 
             if (currentPool.length > 0) startBtn.classList.remove('hidden');
             else if (errorCount > 0) alert(`Could not load any recordings. Last error: ${lastError}`);
