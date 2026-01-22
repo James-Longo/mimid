@@ -150,6 +150,7 @@
         let familyToSpeciesList = new Map();
         let familySpeciesCounts = new Map();
         let SCI_TO_FAMILY = {};
+        let EN_TO_SCI = {};
 
         const speciesMetadataCache = new Map();
 
@@ -165,23 +166,33 @@
 
         async function fetchSpeciesData(species) {
             if (speciesMetadataCache.has(species)) return speciesMetadataCache.get(species);
-            let q = `en:"${species}" q:A len:10-60`;
+
+            const sciName = EN_TO_SCI[species] || species;
+            let q = `sci:"${sciName}" q:A len:10-60`;
+            console.log(`Fetching XC data for ${species} (${sciName})...`);
+
             try {
-                // Use a CORS proxy for static hosting (XC does not support CORS)
                 const xcUrl = `https://xeno-canto.org/api/2/recordings?query=${encodeURIComponent(q)}`;
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(xcUrl)}`;
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(xcUrl)}`;
 
                 const response = await fetch(proxyUrl);
-                const data = await response.json();
+                if (!response.ok) throw new Error(`Proxy error: ${response.status}`);
+
+                const wrapper = await response.json();
+                const data = JSON.parse(wrapper.contents);
                 const recordings = data.recordings || [];
+
+                console.log(`Received ${recordings.length} recordings for ${species}`);
+
                 recordings.forEach(rec => {
                     const sci = `${rec.gen || ''} ${rec.sp || ''}`.trim();
                     if (SCI_TO_FAMILY[sci]) rec.family = SCI_TO_FAMILY[sci];
                 });
+
                 speciesMetadataCache.set(species, recordings);
                 return recordings;
             } catch (e) {
-                console.error("XC Fetch Error", species, e);
+                console.error(`XC Fetch failed for ${species}:`, e);
                 return [];
             }
         }
@@ -277,14 +288,24 @@
             speciesList.forEach(sp => { if (speciesMetadataCache.has(sp)) allRecordings.push(...speciesMetadataCache.get(sp)); });
 
             if (fetchList.length > 0) {
-                const results = await Promise.all(fetchList.map(sp => fetchSpeciesData(sp)));
-                results.forEach(recs => allRecordings.push(...recs));
+                console.log(`Need to fetch ${fetchList.length} species...`);
+                // Use allSettled to prevent one failure from blocking everything
+                const results = await Promise.allSettled(fetchList.map(sp => fetchSpeciesData(sp)));
+                results.forEach((res, i) => {
+                    if (res.status === 'fulfilled') {
+                        allRecordings.push(...res.value);
+                    } else {
+                        console.warn(`Failed to fetch ${fetchList[i]}`);
+                    }
+                });
             }
 
+            console.log(`Total recordings available: ${allRecordings.length}`);
             typeFilters.innerHTML = '';
             regionFilters.innerHTML = '';
 
             if (allRecordings.length === 0) {
+                console.warn("No recordings found in total across species.");
                 typeFilters.innerHTML = 'No recordings found';
                 return;
             }
@@ -478,13 +499,26 @@
         }));
 
         async function init() {
+            console.log("Initializing app...");
             try {
                 const res = await fetch('all_species.json');
+                if (!res.ok) throw new Error("Could not load all_species.json");
+
                 SPECIES_LIST = await res.json();
-                SPECIES_LIST.forEach(s => { if (s.sci) SCI_TO_FAMILY[s.sci] = s.family; });
+                console.log(`Loaded ${SPECIES_LIST.length} species from JSON.`);
+
+                SPECIES_LIST.forEach(s => {
+                    if (s.sci) SCI_TO_FAMILY[s.sci] = s.family;
+                    if (s.en) EN_TO_SCI[s.en] = s.sci;
+                });
+
                 loadingOverlay.classList.add('hidden');
                 populateFamilyDropdown();
-            } catch (e) { console.error(e); }
+                console.log("App ready.");
+            } catch (e) {
+                console.error("Initialization failed:", e);
+                loadingOverlay.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
+            }
         }
 
         init();
