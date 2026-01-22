@@ -42,3 +42,8 @@ mimid-*.json
 *.db
 # Large data files
 audio/
+
+# XC API Guide
+API __ xeno-canto.html
+API __ xeno-canto_files/
+config.json

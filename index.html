@@ -32,6 +32,21 @@
 
         <aside class="settings-panel">
             <div class="settings-section">
+                <h3>Search Criteria</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <input type="text" id="xcApiKey" class="search-input" placeholder="XC API Key (from account page)"
+                        autocomplete="on">
+                    <input type="text" id="globalCountry" class="search-input"
+                        placeholder="Country (e.g. United States)" autocomplete="on">
+                    <input type="text" id="globalType" class="search-input" placeholder="Type (e.g. song)"
+                        autocomplete="on">
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    API Key is <b>required</b> for v3. Refine results to save time.
+                </p>
+            </div>
+
+            <div class="settings-section">
                 <h3>Families</h3>
                 <div style="position: relative; margin-bottom: 0.5rem;">
                     <select id="familySelect" class="search-input" style="cursor: pointer;">
@@ -154,6 +169,10 @@
 
         const speciesMetadataCache = new Map();
 
+        const xcApiKeyInput = document.getElementById('xcApiKey');
+        const globalCountryInput = document.getElementById('globalCountry');
+        const globalTypeInput = document.getElementById('globalType');
+
         function getMetadata() {
             return JSON.parse(localStorage.getItem('mimid_metadata') || '{}');
         }
@@ -168,28 +187,35 @@
             if (speciesMetadataCache.has(species)) return speciesMetadataCache.get(species);
 
             const sciName = EN_TO_SCI[species] || species;
-            // Relaxed query: scientific name and length only. 
-            // Removed q:A to significantly increase recording hit rates.
-            let q = `${sciName} len:10-60`;
-            console.log(`Fetching XC data for ${species} (${sciName})...`);
+            const apiKey = xcApiKeyInput.value.trim() || 'demo';
+
+            // API v3 uses 'sp:' for scientific names. 'sci:' is no longer used.
+            let q = `sp:"${sciName}" q:A len:10-60`;
+
+            const gCountry = globalCountryInput.value.trim();
+            const gType = globalTypeInput.value.trim();
+
+            if (gCountry) q += ` cnt:"${gCountry}"`;
+            if (gType) q += ` type:"${gType}"`;
+
+            console.log(`Fetching XC data for ${species}: [${q}]`);
 
             const tryFetch = async (proxyBase) => {
-                const xcUrl = `https://xeno-canto.org/api/2/recordings?query=${encodeURIComponent(q)}`;
+                const xcUrl = `https://xeno-canto.org/api/3/recordings?query=${encodeURIComponent(q)}&key=${apiKey}`;
                 const response = await fetch(`${proxyBase}${encodeURIComponent(xcUrl)}`);
                 if (!response.ok) throw new Error(`Status ${response.status}`);
                 const wrapper = await response.json();
-                // AllOrigins wraps in .contents, Codetabs returns raw
                 return typeof wrapper.contents === 'string' ? JSON.parse(wrapper.contents) : wrapper;
             };
 
             try {
                 let data;
                 try {
-                    // Try AllOrigins first
+                    // Try Primary Proxy (AllOrigins)
                     data = await tryFetch("https://api.allorigins.win/get?url=");
                 } catch (e) {
                     console.warn(`AllOrigins failed for ${species}, trying Codetabs...`);
-                    // Fallback to Codetabs proxy
+                    // Fallback Proxy (Codetabs)
                     data = await tryFetch("https://api.codetabs.com/v1/proxy?url=");
                 }
 
@@ -520,8 +546,40 @@
             loadNext();
         }));
 
+        [xcApiKeyInput, globalCountryInput, globalTypeInput].forEach(input => {
+            input.addEventListener('input', () => {
+                if (input.id === 'xcApiKey') {
+                    localStorage.setItem('mimid_xc_key', input.value);
+                }
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    console.log("Global search criteria changed. Clearing cache and reloading...");
+                    speciesMetadataCache.clear();
+                    updateAvailableTypes();
+                    renderSelectedFamilies();
+                }, 800);
+            });
+        });
+
         async function init() {
             console.log("Initializing app...");
+            xcApiKeyInput.value = localStorage.getItem('mimid_xc_key') || '';
+
+            // Try to load key from a local (git-ignored) config file
+            try {
+                const configRes = await fetch('config.json');
+                if (configRes.ok) {
+                    const configData = await configRes.json();
+                    if (configData.key) {
+                        console.log("Found API key in config.json");
+                        xcApiKeyInput.value = configData.key;
+                        localStorage.setItem('mimid_xc_key', configData.key);
+                    }
+                }
+            } catch (e) {
+                // Ignore if config.json doesn't exist (expected for GitHub Pages)
+            }
+
             try {
                 const res = await fetch('all_species.json');
                 if (!res.ok) throw new Error("Could not load all_species.json");
