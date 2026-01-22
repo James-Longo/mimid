@@ -47,3 +47,7 @@ audio/
 API __ xeno-canto.html
 API __ xeno-canto_files/
 config.json
+
+# Playwright
+playwright-report/
+test-results/

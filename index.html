@@ -385,6 +385,7 @@
             isSessionActive = true;
             startScreen.style.display = 'none';
             sessionScreen.style.display = 'flex';
+            sessionScreen.classList.remove('hidden-card');
             cardContainer.classList.remove('hidden-card');
             loadNext();
         };
