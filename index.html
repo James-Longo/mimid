@@ -446,8 +446,20 @@
 
         resetBtn.onclick = () => { if (confirm("This will clear all your learning progress (mastered birds, etc). Proceed?")) { localStorage.removeItem('mimid_metadata'); location.reload(); } };
 
+        function resetAudioControls() {
+            viz.style.display = 'none';
+            pauseBtn.style.display = 'none';
+            playBtn.style.display = 'flex';
+            promptText.innerText = "Playing vocalization...";
+        }
+
         function loadNext() {
             if (currentPool.length === 0) { alert("No recordings available for this criteria!"); location.reload(); return; }
+
+            // Stop previous audio and reset UI immediately
+            birdAudio.pause();
+            birdAudio.currentTime = 0;
+            resetAudioControls();
 
             // Group recordings by species ID to ensure balanced species selection
             const speciesMap = {};
@@ -468,9 +480,6 @@
             currentRecord = speciesRecordings[Math.floor(Math.random() * speciesRecordings.length)];
 
             isFlipped = false;
-            // cardContainer.classList.remove('flipped'); // Handled before delay
-            // revealBtn.style.display = 'block'; // Handled before delay
-            // ratingButtons.classList.add('hidden-card'); // Handled before delay
 
             speciesImageEl.src = ""; speciesImageEl.style.display = 'none'; imageAttributionEl.innerText = "";
             const sci = `${currentRecord.gen} ${currentRecord.sp}`.trim();
@@ -482,7 +491,18 @@
             vocalTypeEl.innerText = currentRecord.type;
             locationEl.innerText = currentRecord.cnt;
             birdAudio.src = currentRecord.file.startsWith('//') ? 'https:' + currentRecord.file : currentRecord.file;
-            birdAudio.play().then(() => { viz.style.display = 'flex'; playBtn.style.display = 'none'; pauseBtn.style.display = 'flex'; }).catch(() => { });
+
+            // Attempt autoplay
+            birdAudio.play()
+                .then(() => {
+                    viz.style.display = 'flex';
+                    playBtn.style.display = 'none';
+                    pauseBtn.style.display = 'flex';
+                })
+                .catch((e) => {
+                    console.log("Autoplay prevented:", e);
+                    // UI is already in 'Stopped' state (Play button visible), so user can manually play.
+                });
         }
 
         function playAudio() { birdAudio.play(); viz.style.display = 'flex'; playBtn.style.display = 'none'; pauseBtn.style.display = 'flex'; }
