@@ -187,6 +187,8 @@
         const toggleAdvanced = document.getElementById('toggleAdvanced');
         const advancedSettings = document.getElementById('advancedSettings');
 
+        function getMetadata() { return JSON.parse(localStorage.getItem('mimid_metadata') || '{}'); }
+
         // Setup region search
         globalRegionInput.oninput = (e) => {
             const term = e.target.value.toLowerCase();
