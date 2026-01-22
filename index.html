@@ -513,26 +513,46 @@
         pauseBtn.onclick = (e) => { e.stopPropagation(); pauseAudio(); };
         cardContainer.onclick = () => { if (birdAudio.paused) playAudio(); else pauseAudio(); };
 
-        document.querySelectorAll('.rating-btn').forEach(btn => btn.onclick = () => {
-            const grade = parseInt(btn.dataset.grade);
-            const id = String(currentRecord.id);
-            const meta = getMetadata();
-            let card = meta[id] || { easyStreak: 0 };
-            if (grade === 1 || grade === 2) card.easyStreak = 0;
-            else { card.easyStreak++; if (card.easyStreak >= 3) { card.mastered = true; currentPool = currentPool.filter(r => String(r.id) !== id); } }
-            localStorage.setItem('mimid_metadata', JSON.stringify({ ...meta, [id]: card }));
+        document.querySelectorAll('.rating-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                console.log("Rating button clicked:", btn.dataset.grade);
+                try {
+                    if (!currentRecord) { console.error("No current record!"); return; }
 
-            // Flip back immediately
-            isFlipped = false;
-            cardContainer.classList.remove('flipped');
-            ratingButtons.classList.add('hidden-card');
+                    const grade = parseInt(btn.dataset.grade);
+                    const id = String(currentRecord.id);
+                    const meta = getMetadata();
+                    let card = meta[id] || { easyStreak: 0 };
 
-            // Wait for flip animation (600ms) to finish before loading next card content
-            // This prevents "spoiling" the next card while it's still visible during the flip
-            setTimeout(() => {
-                revealBtn.style.display = 'block';
-                loadNext();
-            }, 600);
+                    if (grade === 1 || grade === 2) card.easyStreak = 0;
+                    else {
+                        card.easyStreak++;
+                        if (card.easyStreak >= 3) {
+                            card.mastered = true;
+                            currentPool = currentPool.filter(r => String(r.id) !== id);
+                        }
+                    }
+
+                    localStorage.setItem('mimid_metadata', JSON.stringify({ ...meta, [id]: card }));
+
+                    // Flip back immediately
+                    console.log("Flipping back...");
+                    isFlipped = false;
+                    cardContainer.classList.remove('flipped');
+                    ratingButtons.classList.add('hidden-card');
+
+                    // Wait for flip animation (600ms) to finish before loading next card content
+                    setTimeout(() => {
+                        console.log("Loading next card...");
+                        revealBtn.style.display = 'block';
+                        loadNext();
+                    }, 600);
+                } catch (err) {
+                    console.error("Error in rating handler:", err);
+                    alert("Error: " + err.message);
+                }
+            };
         });
 
         async function init() {
