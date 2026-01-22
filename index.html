@@ -133,8 +133,7 @@
                 </div>
             </div>
 
-            <div class="controls hidden-card" id="sessionScreen"
-                style="display: none; flex-direction: column; align-items: center;">
+            <div class="controls hidden-card" id="sessionScreen">
                 <button class="secondary" id="revealBtn">Reveal Answer</button>
                 <div id="ratingButtons" class="rating-group hidden-card">
                     <button class="rating-btn again" data-grade="1">Incorrect</button>
@@ -382,12 +381,21 @@
         }
 
         startBtn.onclick = () => {
-            isSessionActive = true;
-            startScreen.style.display = 'none';
-            sessionScreen.style.display = 'flex';
-            sessionScreen.classList.remove('hidden-card');
-            cardContainer.classList.remove('hidden-card');
-            loadNext();
+            console.log('Start button clicked');
+            try {
+                isSessionActive = true;
+                startScreen.style.display = 'none';
+                sessionScreen.style.display = 'flex';
+                sessionScreen.classList.remove('hidden-card');
+                console.log('Session screen classes:', sessionScreen.className);
+                console.log('Session screen display:', sessionScreen.style.display);
+
+                cardContainer.classList.remove('hidden-card');
+                loadNext();
+            } catch (e) {
+                console.error('Error starting session:', e);
+                alert('Error starting session: ' + e.message);
+            }
         };
 
         resetBtn.onclick = () => { if (confirm("This will clear all your learning progress (mastered birds, etc). Proceed?")) { localStorage.removeItem('mimid_metadata'); location.reload(); } };
