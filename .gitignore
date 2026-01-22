@@ -15,7 +15,6 @@ npm-debug.log
 yarn-error.log
 
 # Data files
-all_species.json
 audio/
 *.mp3
 *.wav
@@ -42,6 +41,4 @@ ENV/
 mimid-*.json
 *.db
 # Large data files
-all_species.json
-organized_vocalizations.json
 audio/
