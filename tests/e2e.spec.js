@@ -8,10 +8,6 @@ test('mimid e2e flow', async ({ page }) => {
     // Check title
     await expect(page).toHaveTitle(/mimid/);
 
-    // 2. Select region (Country)
-    const countryInput = page.locator('#globalCountry');
-    await countryInput.fill('United States');
-
     // 3. Select vocalization type (Song/Call)
     const typeSelect = page.locator('#globalType');
     await typeSelect.selectOption('song');
