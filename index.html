@@ -41,6 +41,9 @@
                     <input type="text" id="globalType" class="search-input" placeholder="Type (e.g. song)"
                         autocomplete="on">
                 </div>
+                <p id="keyStatus" style="font-size: 0.75rem; color: #ff6b6b; margin-top: 0.5rem;">
+                    Key Status: Not set (using restricted demo key)
+                </p>
                 <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
                     API Key is <b>required</b> for v3. Refine results to save time.
                 </p>
@@ -223,8 +226,12 @@
                 console.log(`Received ${recordings.length} recordings for ${species}`);
 
                 if (data.error) {
-                    console.error(`XC API Error for ${species}:`, data.error);
-                    throw new Error(data.error.message || "Unknown API Error");
+                    const msg = (typeof data.error === 'object' ? data.error.message : data.message) || data.error;
+                    console.error(`XC API Error: ${msg}`);
+                    if (data.error === "client_error" || msg.includes("API key")) {
+                        throw new Error("Invalid or Missing API Key");
+                    }
+                    throw new Error(msg || "Unknown API Error");
                 }
 
                 recordings.forEach(rec => {
@@ -236,7 +243,6 @@
                 return recordings;
             } catch (e) {
                 console.error(`XC Fetch failed for ${species}:`, e);
-                // Return a special object to indicate error type
                 return { error: e.message };
             }
         }
@@ -584,17 +590,25 @@
 
         async function init() {
             console.log("Initializing app...");
-            xcApiKeyInput.value = localStorage.getItem('mimid_xc_key') || '';
+            const keyStatus = document.getElementById('keyStatus');
+            const storedKey = localStorage.getItem('mimid_xc_key');
+            if (storedKey && storedKey !== "demo") {
+                xcApiKeyInput.value = storedKey;
+                keyStatus.innerText = "Key Status: Loaded from LocalStorage";
+                keyStatus.style.color = "#4ade80";
+            }
 
             // Try to load key from a local (git-ignored) config file
             try {
                 const configRes = await fetch('config.json');
                 if (configRes.ok) {
                     const configData = await configRes.json();
-                    if (configData.key) {
+                    if (configData.key && configData.key !== "PASTE_YOUR_KEY_HERE") {
                         console.log("Found API key in config.json");
                         xcApiKeyInput.value = configData.key;
                         localStorage.setItem('mimid_xc_key', configData.key);
+                        keyStatus.innerText = "Key Status: Active (GitHub Secret)";
+                        keyStatus.style.color = "#4ade80";
                     }
                 }
             } catch (e) {
