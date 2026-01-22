@@ -38,8 +38,11 @@
                 <div class="settings-group">
                     <h4>Location & Type</h4>
                     <h4>Location & Type</h4>
-                    <input type="text" id="globalCountry" class="search-input"
-                        placeholder="Country (e.g. United States)" autocomplete="on">
+                    <div style="position: relative;">
+                        <input type="text" id="globalCountry" class="search-input"
+                            placeholder="Country (e.g. United States)" autocomplete="off">
+                        <div id="countryResults" class="dropdown-results hidden"></div>
+                    </div>
                     <select id="globalType" class="search-input" style="cursor: pointer;">
                         <option value="">Vocalization: Any</option>
                         <option value="song">Songs Only</option>
@@ -152,8 +155,12 @@
         </main>
     </div>
 
+    <div id="countrySearchAutocomplete" class="dropdown-results hidden"
+        style="left:0; right:0; top:100%; max-height:200px;"></div>
+
     <audio id="birdAudio"></audio>
 
+    <script src="countries.js"></script>
     <script>
         let currentPool = [];
         let currentRecord = null;
@@ -169,10 +176,37 @@
 
         const speciesMetadataCache = new Map();
 
-        const xcApiKeyInput = document.getElementById('xcApiKey');
         const globalCountryInput = document.getElementById('globalCountry');
+        const countryResults = document.getElementById('countryResults');
         const globalTypeInput = document.getElementById('globalType');
         const createSessionBtn = document.getElementById('createSessionBtn');
+
+        // Country Autocomplete
+        globalCountryInput.oninput = (e) => {
+            const term = e.target.value.toLowerCase();
+            if (term.length < 1) { countryResults.classList.add('hidden'); return; }
+
+            const matches = COUNTRY_LIST.filter(c => c.toLowerCase().includes(term));
+
+            countryResults.innerHTML = '';
+            if (matches.length === 0) { countryResults.classList.add('hidden'); return; }
+
+            matches.slice(0, 50).forEach(c => { // Limit to 50 results
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.innerText = c;
+                item.onclick = () => { globalCountryInput.value = c; countryResults.classList.add('hidden'); };
+                countryResults.appendChild(item);
+            });
+            countryResults.classList.remove('hidden');
+        };
+
+        // Hide results on outside click
+        document.addEventListener('click', (e) => {
+            if (!globalCountryInput.contains(e.target) && !countryResults.contains(e.target)) {
+                countryResults.classList.add('hidden');
+            }
+        });
         const loadingBanner = document.getElementById('loadingBanner');
         const loadingStatus = document.getElementById('loadingStatus');
         const progressBarFill = document.getElementById('progressBarFill');
