@@ -391,3 +391,99 @@ button:hover {
 .dropdown-item:last-child {
     border-bottom: none;
 }
+
+/* New Session Creation UI */
+.create-session-btn {
+    width: 100%;
+    margin-top: auto;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    box-shadow: var(--shadow-glow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.create-session-btn:hover:not(:disabled) {
+    transform: translateY(-4px) scale(1.02);
+    filter: brightness(1.2);
+}
+
+.create-session-btn:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+}
+
+.create-session-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--text-muted);
+    box-shadow: none;
+}
+
+.progress-banner {
+    width: 100%;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid var(--accent-primary);
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--accent-primary);
+    transition: width 0.3s ease;
+}
+
+.settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-group h4 {
+    font-size: 0.75rem;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+
+#keyStatus {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.advanced-toggle {
+    margin-top: auto;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-align: center;
+    cursor: pointer;
+    text-decoration: underline;
+    opacity: 0.5;
+}
+
+.advanced-toggle:hover {
+    opacity: 1;
+}

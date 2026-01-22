@@ -4,24 +4,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mimid</title>
-    <meta name="description"
-        content="Master bird sounds with dynamic flashcards powered by the Cornell Guide to Bird Sounds.">
+    <title>mimid | Bird Vocalization Flashcards</title>
     <link rel="stylesheet" href="index.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap"
+        rel="stylesheet">
 </head>
 
 <body>
     <div id="loading" class="loading-overlay">
         <div class="audio-controls">
-            <div class="visualizer">
-                <div class="bar" style="animation-delay: 0.0s"></div>
-                <div class="bar" style="animation-delay: 0.1s"></div>
-                <div class="bar" style="animation-delay: 0.2s"></div>
-                <div class="bar" style="animation-delay: 0.3s"></div>
-                <div class="bar" style="animation-delay: 0.4s"></div>
-                <div class="bar" style="animation-delay: 0.5s"></div>
+            <div class="visualizer" style="display: flex;">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
             </div>
-            <p>Loading...</p>
+            <p>Gathering bird songs...</p>
         </div>
     </div>
 
@@ -33,69 +34,65 @@
         <aside class="settings-panel">
             <div class="settings-section">
                 <h3>Search Criteria</h3>
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <input type="text" id="xcApiKey" class="search-input" placeholder="XC API Key (from account page)"
-                        autocomplete="on">
+
+                <div class="settings-group">
+                    <h4>Location & Type</h4>
                     <input type="text" id="globalCountry" class="search-input"
                         placeholder="Country (e.g. United States)" autocomplete="on">
-                    <input type="text" id="globalType" class="search-input" placeholder="Type (e.g. song)"
-                        autocomplete="on">
-                </div>
-                <p id="keyStatus" style="font-size: 0.75rem; color: #ff6b6b; margin-top: 0.5rem;">
-                    Key Status: Not set (using restricted demo key)
-                </p>
-                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
-                    API Key is <b>required</b> for v3. Refine results to save time.
-                </p>
-            </div>
-
-            <div class="settings-section">
-                <h3>Families</h3>
-                <div style="position: relative; margin-bottom: 0.5rem;">
-                    <select id="familySelect" class="search-input" style="cursor: pointer;">
-                        <option value="">Select a Family...</option>
+                    <select id="globalType" class="search-input" style="cursor: pointer;">
+                        <option value="">Vocalization: Any</option>
+                        <option value="song">Songs Only</option>
+                        <option value="call">Calls Only</option>
                     </select>
                 </div>
-                <div class="filter-list" id="selectedFamiliesList">
-                    <!-- Selected family chips will appear here -->
+
+                <div class="settings-group">
+                    <h4>Study Group</h4>
+                    <div style="position: relative;">
+                        <select id="familySelect" class="search-input" style="cursor: pointer;">
+                            <option value="">Add a Family...</option>
+                        </select>
+                    </div>
+                    <div class="filter-list" id="selectedFamiliesList"></div>
+
+                    <div style="position: relative; margin-top: 0.5rem;">
+                        <input type="text" id="speciesSearch" class="search-input" placeholder="Add specific species..."
+                            autocomplete="off">
+                        <div id="speciesResults" class="dropdown-results hidden"></div>
+                    </div>
+                    <div class="filter-list" id="selectedSpeciesList"></div>
                 </div>
             </div>
 
-            <div class="settings-section">
-                <h3>Custom Group</h3>
-                <div class="filter-list" id="selectedSpeciesList">
-                    <!-- Selected individual species chips -->
-                </div>
-                <div style="position: relative;">
-                    <input type="text" id="speciesSearch" class="search-input" placeholder="Search to add species..."
-                        autocomplete="off">
-                    <div id="speciesResults" class="dropdown-results hidden"></div>
-                </div>
-            </div>
+            <button class="create-session-btn" id="createSessionBtn">Create Session</button>
 
-            <div class="settings-section">
-                <h3>Vocalizations</h3>
-                <div class="filter-list" id="typeFilters">
-                    <!-- Dynamic chips -->
-                </div>
+            <div id="advancedSettings" class="hidden"
+                style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                <input type="text" id="xcApiKey" class="search-input" placeholder="XC API Key" autocomplete="on">
+                <p id="keyStatus" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.4rem;">Status:
+                    Checking...</p>
             </div>
-
-            <div class="settings-section">
-                <h3>Region</h3>
-                <div class="filter-list" id="regionFilters">
-                    <!-- Dynamic region chips -->
-                </div>
-            </div>
+            <p class="advanced-toggle" id="toggleAdvanced">Advanced Settings</p>
         </aside>
 
         <main class="main-content">
+            <div id="loadingBanner" class="progress-banner hidden">
+                <p id="loadingStatus" style="font-size: 0.9rem; font-weight: 600;">Preparing Session...</p>
+                <div class="progress-bar-bg">
+                    <div id="progressBarFill" class="progress-bar-fill"></div>
+                </div>
+            </div>
+
             <div id="startScreen" style="text-align: center;">
                 <p style="margin-bottom: 2rem; font-size: 1.2rem; max-width: 500px; line-height: 1.6;">
                     Select your <strong>study species</strong> and <strong>vocalization types</strong> from the sidebar,
-                    then click Start to begin.
+                    then click Create Session to begin.
                 </p>
-                <button class="primary" id="startBtn" style="font-size: 1.2rem; padding: 1rem 3rem;">Start
-                    Session</button>
+                <div style="color: var(--text-muted); font-size: 0.9rem;">
+                    Session status: <span id="poolStatus">No records loaded</span>
+                </div>
+                <button class="primary hidden" id="startBtn"
+                    style="font-size: 1.2rem; padding: 1rem 3rem; margin-top: 1.5rem;">Start Quiz</button>
             </div>
 
             <div class="card-container hidden-card" id="cardContainer">
@@ -145,13 +142,14 @@
                     <button class="rating-btn easy" data-grade="4">Correct (Easy)</button>
                 </div>
                 <button class="secondary" id="resetBtn"
-                    style="margin-top: 1rem; background: var(--danger); opacity: 0.8;">Reset Session</button>
+                    style="margin-top: 1rem; background: var(--danger); opacity: 0.8; color: #ff6b6b; border-color: #ff6b6b;">Reset
+                    All Progress</button>
             </div>
             <p id="statsText" style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;"></p>
         </main>
-
-        <audio id="birdAudio" style="display:none;"></audio>
     </div>
+
+    <audio id="birdAudio"></audio>
 
     <script>
         let currentPool = [];
@@ -160,13 +158,9 @@
         let isSessionActive = false;
         let selectedSpecies = new Set();
         let selectedFamilies = new Set();
-        let selectedTypes = new Set();
-        let selectedRegions = new Set();
-        let debounceTimer;
 
         let SPECIES_LIST = [];
         let familyToSpeciesList = new Map();
-        let familySpeciesCounts = new Map();
         let SCI_TO_FAMILY = {};
         let EN_TO_SCI = {};
 
@@ -175,16 +169,16 @@
         const xcApiKeyInput = document.getElementById('xcApiKey');
         const globalCountryInput = document.getElementById('globalCountry');
         const globalTypeInput = document.getElementById('globalType');
+        const createSessionBtn = document.getElementById('createSessionBtn');
+        const loadingBanner = document.getElementById('loadingBanner');
+        const loadingStatus = document.getElementById('loadingStatus');
+        const progressBarFill = document.getElementById('progressBarFill');
+        const poolStatus = document.getElementById('poolStatus');
+        const startBtn = document.getElementById('startBtn');
+        const toggleAdvanced = document.getElementById('toggleAdvanced');
+        const advancedSettings = document.getElementById('advancedSettings');
 
-        function getMetadata() {
-            return JSON.parse(localStorage.getItem('mimid_metadata') || '{}');
-        }
-
-        function saveMetadata(id, data) {
-            const meta = getMetadata();
-            meta[id] = data;
-            localStorage.setItem('mimid_metadata', JSON.stringify(meta));
-        }
+        function getMetadata() { return JSON.parse(localStorage.getItem('mimid_metadata') || '{}'); }
 
         async function fetchSpeciesData(species) {
             if (speciesMetadataCache.has(species)) return speciesMetadataCache.get(species);
@@ -209,11 +203,7 @@
                 return typeof wrapper.contents === 'string' ? JSON.parse(wrapper.contents) : wrapper;
             };
 
-            const proxies = [
-                "https://corsproxy.io/?",
-                "https://api.allorigins.win/get?url=",
-                "https://api.codetabs.com/v1/proxy?url="
-            ];
+            const proxies = ["https://corsproxy.io/?", "https://api.allorigins.win/get?url=", "https://api.codetabs.com/v1/proxy?url="];
 
             try {
                 let lastErr = null;
@@ -221,29 +211,20 @@
                     for (const proxy of proxies) {
                         try {
                             const data = await tryFetch(proxy);
-
                             if (data.error) {
                                 const msg = (typeof data.error === 'object' ? data.error.message : data.message) || data.error;
-                                if (data.error === "client_error" || msg.toLowerCase().includes("api key")) {
-                                    throw new Error("Invalid or Missing API Key");
-                                }
+                                if (data.error === "client_error" || msg.toLowerCase().includes("api key")) throw new Error("Invalid or Missing API Key");
                                 throw new Error(msg || "Unknown API Error");
                             }
-
                             const recordings = data.recordings || [];
-                            const pName = new URL(proxy).hostname;
-                            console.log(`[${pName}] Received ${recordings.length} recordings for ${species}`);
-
                             recordings.forEach(rec => {
                                 const sci = `${rec.gen || ''} ${rec.sp || ''}`.trim();
                                 if (SCI_TO_FAMILY[sci]) rec.family = SCI_TO_FAMILY[sci];
                             });
-
                             speciesMetadataCache.set(species, recordings);
                             return recordings;
                         } catch (e) {
                             lastErr = e;
-                            console.warn(`Proxy ${proxy} failed for ${species}: ${e.message}`);
                             if (e.message.includes("API Key")) throw e;
                         }
                     }
@@ -264,21 +245,15 @@
                 const data = await res.json();
                 const pages = data.query.pages;
                 for (let pid in pages) {
-                    if (pages[pid].thumbnail) {
-                        return {
-                            url: pages[pid].thumbnail.source,
-                            rightsHolder: "Wikipedia Contributors",
-                            license: "CC BY-SA"
-                        };
-                    }
+                    if (pages[pid].thumbnail) return { url: pages[pid].thumbnail.source, rightsHolder: "Wikipedia Contributors", license: "CC BY-SA" };
                 }
-            } catch (e) { console.warn("Wiki image failed", e); }
+            } catch (e) { }
             return null;
         }
 
         function populateFamilyDropdown() {
             const families = Array.from(new Set(SPECIES_LIST.map(s => s.family).filter(f => !!f)));
-            familySelect.innerHTML = '<option value="">Select a Family...</option>';
+            familySelect.innerHTML = '<option value="">Add a Family...</option>';
             families.sort().forEach((family) => {
                 const opt = document.createElement('option');
                 opt.value = family;
@@ -289,11 +264,8 @@
 
         async function getFamilySpecies(family) {
             if (familyToSpeciesList.has(family)) return familyToSpeciesList.get(family);
-            const speciesInFamily = SPECIES_LIST
-                .filter(s => s.family === family)
-                .map(s => s.en);
+            const speciesInFamily = SPECIES_LIST.filter(s => s.family === family).map(s => s.en);
             familyToSpeciesList.set(family, speciesInFamily);
-            familySpeciesCounts.set(family, speciesInFamily.length);
             return speciesInFamily;
         }
 
@@ -314,8 +286,6 @@
         const viz = document.getElementById('viz');
         const birdAudio = document.getElementById('birdAudio');
         const speciesResults = document.getElementById('speciesResults');
-        const typeFilters = document.getElementById('typeFilters');
-        const regionFilters = document.getElementById('regionFilters');
         const locationEl = document.getElementById('locationTag');
         const speciesImageEl = document.getElementById('speciesImage');
         const imageAttributionEl = document.getElementById('imageAttribution');
@@ -325,180 +295,81 @@
         const selectedFamiliesList = document.getElementById('selectedFamiliesList');
         const selectedSpeciesList = document.getElementById('selectedSpeciesList');
 
-        async function updateAvailableTypes() {
-            const allSpeciesToFetch = new Set(selectedSpecies);
-            selectedFamilies.forEach(family => {
-                const speciesInFamily = familyToSpeciesList.get(family) || [];
-                speciesInFamily.forEach(sp => allSpeciesToFetch.add(sp));
-            });
+        toggleAdvanced.onclick = () => advancedSettings.classList.toggle('hidden');
 
-            const speciesList = Array.from(allSpeciesToFetch);
-            if (speciesList.length === 0) {
-                typeFilters.innerHTML = '<div class="filter-chip" style="cursor:default; background:transparent;">Select families or species first</div>';
-                regionFilters.innerHTML = '<div class="filter-chip" style="cursor:default; background:transparent;">Select families or species first</div>';
-                return;
-            }
+        async function createSession() {
+            if (selectedFamilies.size === 0 && selectedSpecies.size === 0) return alert("Select birds first!");
 
-            typeFilters.innerHTML = 'Loading types...';
-            regionFilters.innerHTML = 'Loading regions...';
+            loadingBanner.classList.remove('hidden');
+            createSessionBtn.disabled = true;
+            startBtn.classList.add('hidden');
 
-            const allRecordings = [];
-            const fetchList = speciesList.filter(sp => !speciesMetadataCache.has(sp));
-            speciesList.forEach(sp => { if (speciesMetadataCache.has(sp)) allRecordings.push(...speciesMetadataCache.get(sp)); });
+            const toFetch = new Set(selectedSpecies);
+            for (const f of selectedFamilies) (await getFamilySpecies(f)).forEach(s => toFetch.add(s));
+            const speciesList = Array.from(toFetch);
 
-            if (fetchList.length > 0) {
-                console.log(`Fetching ${fetchList.length} species with high-reliability mode...`);
-                typeFilters.innerHTML = `Loading ${fetchList.length} species...`;
+            currentPool = [];
+            let errorCount = 0;
+            let lastError = "";
 
-                const batchSize = 2; // Reduced to be extremely gentle
-                let errorCount = 0;
-                let lastError = "";
+            const batchSize = 2;
+            for (let i = 0; i < speciesList.length; i += batchSize) {
+                const batch = speciesList.slice(i, i + batchSize);
+                const progress = Math.round((i / speciesList.length) * 100);
+                loadingStatus.innerText = `Loading ${i + 1}-${Math.min(i + batchSize, speciesList.length)} of ${speciesList.length} species...`;
+                progressBarFill.style.width = `${progress}%`;
 
-                for (let i = 0; i < fetchList.length; i += batchSize) {
-                    const batch = fetchList.slice(i, i + batchSize);
-                    typeFilters.innerHTML = `Loading ${i + batch.length}/${fetchList.length} species...`;
-
-                    const batchResults = await Promise.allSettled(batch.map(sp => fetchSpeciesData(sp)));
-
-                    batchResults.forEach((res, idx) => {
-                        if (res.status === 'fulfilled') {
-                            if (res.value && res.value.error) {
-                                errorCount++;
-                                lastError = res.value.error;
-                            } else {
-                                allRecordings.push(...(res.value || []));
-                            }
-                        } else {
-                            console.warn(`System logic error for ${batch[idx]}`);
-                            errorCount++;
-                        }
-                    });
-
-                    // Breathing room to avoid rate limits
-                    if (i + batchSize < fetchList.length) {
-                        await new Promise(r => setTimeout(r, 500));
-                    }
-                }
-
-                if (errorCount > 0 && allRecordings.length === 0) {
-                    typeFilters.innerHTML = `<span style="color:#ff6b6b; font-size:0.9rem;">Fetch Error: ${lastError || "Network failure"}</span>`;
-                    return;
-                }
-            }
-
-            console.log(`Total recordings available: ${allRecordings.length}`);
-            typeFilters.innerHTML = '';
-            regionFilters.innerHTML = '';
-
-            if (allRecordings.length === 0) {
-                console.warn("No recordings found in total across species.");
-                typeFilters.innerHTML = '<span style="color:#aaa;">No recordings match filters</span>';
-                return;
-            }
-
-            const activeRecordings = selectedRegions.size > 0
-                ? allRecordings.filter(r => selectedRegions.has(r.cnt))
-                : allRecordings;
-
-            const typeCounts = new Map();
-            activeRecordings.forEach(rec => {
-                (rec.type || "unknown").toLowerCase().split(',').map(t => t.trim()).forEach(t => {
-                    if (!t) return;
-                    const norm = t.charAt(0).toUpperCase() + t.slice(1);
-                    typeCounts.set(norm, (typeCounts.get(norm) || 0) + 1);
+                const results = await Promise.allSettled(batch.map(sp => fetchSpeciesData(sp)));
+                results.forEach(res => {
+                    if (res.status === 'fulfilled' && !res.value.error) currentPool.push(...res.value);
+                    else { errorCount++; lastError = res.value?.error || "Fetch failed"; }
                 });
-            });
 
-            Array.from(typeCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10).forEach(([type, count]) => {
-                const chip = document.createElement('div');
-                chip.className = 'filter-chip';
-                if (selectedTypes.has(type)) chip.classList.add('active');
-                chip.innerText = `${type} (${count})`;
-                chip.onclick = () => { toggleFilter(selectedTypes, type, chip); updateAvailableTypes(); renderSelectedFamilies(); };
-                typeFilters.appendChild(chip);
-            });
+                if (i + batchSize < speciesList.length) await new Promise(r => setTimeout(r, 600));
+            }
 
-            const activeForRegion = selectedTypes.size > 0
-                ? allRecordings.filter(rec => Array.from(selectedTypes).some(t => (rec.type || "").toLowerCase().includes(t.toLowerCase())))
-                : allRecordings;
+            progressBarFill.style.width = '100%';
+            loadingStatus.innerText = `Session Created! Loaded ${currentPool.length} recordings.`;
+            poolStatus.innerText = `${currentPool.length} recordings ready.`;
 
-            const regionCounts = new Map();
-            activeForRegion.forEach(rec => {
-                const reg = rec.cnt || "Unknown";
-                regionCounts.set(reg, (regionCounts.get(reg) || 0) + 1);
-            });
+            if (currentPool.length > 0) startBtn.classList.remove('hidden');
+            else if (errorCount > 0) alert(`Could not load any recordings. Last error: ${lastError}`);
 
-            Array.from(regionCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10).forEach(([reg, count]) => {
-                const chip = document.createElement('div');
-                chip.className = 'filter-chip';
-                if (selectedRegions.has(reg)) chip.classList.add('active');
-                chip.innerText = `${reg} (${count})`;
-                chip.onclick = () => { toggleFilter(selectedRegions, reg, chip); updateAvailableTypes(); renderSelectedFamilies(); };
-                regionFilters.appendChild(chip);
-            });
+            createSessionBtn.disabled = false;
         }
 
-        function toggleFilter(set, val, el) {
-            if (set.has(val)) set.delete(val); else set.add(val);
-            el.classList.toggle('active');
-        }
+        createSessionBtn.onclick = createSession;
 
-        async function renderSelectedFamilies() {
+        function renderSelectedFamilies() {
             selectedFamiliesList.innerHTML = '';
-            for (const fam of selectedFamilies) {
+            selectedFamilies.forEach(fam => {
                 const chip = document.createElement('div');
                 chip.className = 'filter-chip active';
-                const sps = await getFamilySpecies(fam);
-                let count = sps.length;
-                if (selectedTypes.size > 0 || selectedRegions.size > 0) {
-                    count = sps.filter(s => {
-                        if (!speciesMetadataCache.has(s)) return false;
-                        return speciesMetadataCache.get(s).some(r => {
-                            let mt = selectedTypes.size === 0 || Array.from(selectedTypes).some(t => (r.type || "").toLowerCase().includes(t.toLowerCase()));
-                            let mr = selectedRegions.size === 0 || selectedRegions.has(r.cnt);
-                            return mt && mr;
-                        });
-                    }).length;
-                }
-                chip.innerText = `${fam} (${count}) ×`;
-                chip.onclick = () => { selectedFamilies.delete(fam); renderSelectedFamilies(); updateAvailableTypes(); };
+                chip.innerText = fam + ' ×';
+                chip.onclick = () => { selectedFamilies.delete(fam); renderSelectedFamilies(); };
                 selectedFamiliesList.appendChild(chip);
-            }
+            });
         }
 
-        familySelect.addEventListener('change', async (e) => {
-            if (e.target.value) {
-                selectedFamilies.add(e.target.value);
-                e.target.value = '';
-                await renderSelectedFamilies();
-                updateAvailableTypes();
-            }
-        });
+        familySelect.onchange = (e) => {
+            if (e.target.value) { selectedFamilies.add(e.target.value); e.target.value = ''; renderSelectedFamilies(); }
+        };
 
-        speciesSearch.addEventListener('input', (e) => {
+        speciesSearch.oninput = (e) => {
             const term = e.target.value.toLowerCase();
-            clearTimeout(debounceTimer);
             if (term.length < 2) { speciesResults.classList.add('hidden'); return; }
-            debounceTimer = setTimeout(() => {
-                const matches = SPECIES_LIST.filter(s => s.en.toLowerCase().includes(term) || s.sci.toLowerCase().includes(term)).slice(0, 10);
-                speciesResults.innerHTML = '';
-                if (matches.length === 0) { speciesResults.classList.add('hidden'); return; }
-                matches.forEach(m => {
-                    const item = document.createElement('div');
-                    item.className = 'dropdown-item';
-                    item.innerText = m.en;
-                    item.onclick = () => {
-                        selectedSpecies.add(m.en);
-                        speciesSearch.value = '';
-                        speciesResults.classList.add('hidden');
-                        renderSelectedSpecies();
-                        updateAvailableTypes();
-                    };
-                    speciesResults.appendChild(item);
-                });
-                speciesResults.classList.remove('hidden');
-            }, 100);
-        });
+            const matches = SPECIES_LIST.filter(s => s.en.toLowerCase().includes(term) || s.sci.toLowerCase().includes(term)).slice(0, 10);
+            speciesResults.innerHTML = '';
+            if (matches.length === 0) { speciesResults.classList.add('hidden'); return; }
+            matches.forEach(m => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                item.innerText = m.en;
+                item.onclick = () => { selectedSpecies.add(m.en); speciesSearch.value = ''; speciesResults.classList.add('hidden'); renderSelectedSpecies(); };
+                speciesResults.appendChild(item);
+            });
+            speciesResults.classList.remove('hidden');
+        };
 
         function renderSelectedSpecies() {
             selectedSpeciesList.innerHTML = '';
@@ -506,41 +377,23 @@
                 const chip = document.createElement('div');
                 chip.className = 'filter-chip active';
                 chip.innerText = sp + ' ×';
-                chip.onclick = () => { selectedSpecies.delete(sp); renderSelectedSpecies(); updateAvailableTypes(); };
+                chip.onclick = () => { selectedSpecies.delete(sp); renderSelectedSpecies(); };
                 selectedSpeciesList.appendChild(chip);
             });
         }
 
-        startBtn.addEventListener('click', async () => {
-            if (selectedFamilies.size === 0 && selectedSpecies.size === 0) return alert("Select birds first!");
-            loadingOverlay.classList.remove('hidden');
-            const toFetch = new Set(selectedSpecies);
-            for (const f of selectedFamilies) (await getFamilySpecies(f)).forEach(s => toFetch.add(s));
-
-            let combined = [];
-            for (const s of Array.from(toFetch)) {
-                const recs = await fetchSpeciesData(s);
-                combined.push(...recs);
-            }
-
-            if (selectedTypes.size > 0) combined = combined.filter(r => Array.from(selectedTypes).some(t => (r.type || "").toLowerCase().includes(t.toLowerCase())));
-            if (selectedRegions.size > 0) combined = combined.filter(r => selectedRegions.has(r.cnt));
-
-            if (combined.length === 0) { loadingOverlay.classList.add('hidden'); return alert("No recordings found!"); }
-
-            currentPool = combined;
+        startBtn.onclick = () => {
             isSessionActive = true;
-            loadingOverlay.classList.add('hidden');
             startScreen.style.display = 'none';
             sessionScreen.style.display = 'flex';
             cardContainer.classList.remove('hidden-card');
             loadNext();
-        });
+        };
 
-        resetBtn.addEventListener('click', () => { if (confirm("Reset?")) { localStorage.removeItem('mimid_metadata'); location.reload(); } });
+        resetBtn.onclick = () => { if (confirm("This will clear all your learning progress (mastered birds, etc). Proceed?")) { localStorage.removeItem('mimid_metadata'); location.reload(); } };
 
         function loadNext() {
-            if (currentPool.length === 0) { alert("Done!"); location.reload(); return; }
+            if (currentPool.length === 0) { alert("No recordings available for this criteria!"); location.reload(); return; }
             currentRecord = currentPool[Math.floor(Math.random() * currentPool.length)];
             isFlipped = false;
             cardContainer.classList.remove('flipped');
@@ -549,11 +402,7 @@
             speciesImageEl.src = ""; speciesImageEl.style.display = 'none'; imageAttributionEl.innerText = "";
             const sci = `${currentRecord.gen} ${currentRecord.sp}`.trim();
             fetchBirdImage(sci).then(img => {
-                if (img) {
-                    speciesImageEl.src = img.url;
-                    speciesImageEl.style.display = 'block';
-                    imageAttributionEl.innerText = `© ${img.rightsHolder} (${img.license})`;
-                }
+                if (img) { speciesImageEl.src = img.url; speciesImageEl.style.display = 'block'; imageAttributionEl.innerText = `© ${img.rightsHolder} (${img.license})`; }
             });
             speciesEl.innerText = currentRecord.en;
             speciesFamilyEl.innerText = currentRecord.family || "";
@@ -566,86 +415,50 @@
         function playAudio() { birdAudio.play(); viz.style.display = 'flex'; playBtn.style.display = 'none'; pauseBtn.style.display = 'flex'; }
         function pauseAudio() { birdAudio.pause(); viz.style.display = 'none'; pauseBtn.style.display = 'none'; playBtn.style.display = 'flex'; }
 
-        revealBtn.addEventListener('click', () => { isFlipped = true; cardContainer.classList.add('flipped'); revealBtn.style.display = 'none'; ratingButtons.classList.remove('hidden-card'); });
-        playBtn.addEventListener('click', (e) => { e.stopPropagation(); playAudio(); });
-        pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); pauseAudio(); });
-        cardContainer.addEventListener('click', () => { if (birdAudio.paused) playAudio(); else pauseAudio(); });
+        revealBtn.onclick = () => { isFlipped = true; cardContainer.classList.add('flipped'); revealBtn.style.display = 'none'; ratingButtons.classList.remove('hidden-card'); };
+        playBtn.onclick = (e) => { e.stopPropagation(); playAudio(); };
+        pauseBtn.onclick = (e) => { e.stopPropagation(); pauseAudio(); };
+        cardContainer.onclick = () => { if (birdAudio.paused) playAudio(); else pauseAudio(); };
 
-        document.querySelectorAll('.rating-btn').forEach(btn => btn.addEventListener('click', () => {
+        document.querySelectorAll('.rating-btn').forEach(btn => btn.onclick = () => {
             const grade = parseInt(btn.dataset.grade);
             const id = String(currentRecord.id);
             const meta = getMetadata();
             let card = meta[id] || { easyStreak: 0 };
-            if (grade === 1) card.easyStreak = 0;
-            else if (grade === 2) card.easyStreak = 0;
+            if (grade === 1 || grade === 2) card.easyStreak = 0;
             else { card.easyStreak++; if (card.easyStreak >= 3) { card.mastered = true; currentPool = currentPool.filter(r => String(r.id) !== id); } }
-            meta[id] = card;
-            localStorage.setItem('mimid_metadata', JSON.stringify(meta));
+            localStorage.setItem('mimid_metadata', JSON.stringify({ ...meta, [id]: card }));
             loadNext();
-        }));
-
-        [xcApiKeyInput, globalCountryInput, globalTypeInput].forEach(input => {
-            input.addEventListener('input', () => {
-                if (input.id === 'xcApiKey') {
-                    localStorage.setItem('mimid_xc_key', input.value);
-                }
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
-                    console.log("Global search criteria changed. Clearing cache and reloading...");
-                    speciesMetadataCache.clear();
-                    updateAvailableTypes();
-                    renderSelectedFamilies();
-                }, 800);
-            });
         });
 
         async function init() {
-            console.log("Initializing app...");
             const keyStatus = document.getElementById('keyStatus');
             const storedKey = localStorage.getItem('mimid_xc_key');
-            if (storedKey && storedKey !== "demo") {
-                xcApiKeyInput.value = storedKey;
-                keyStatus.innerText = "Key Status: Loaded from LocalStorage";
-                keyStatus.style.color = "#4ade80";
-            }
+            if (storedKey && storedKey !== "demo") { xcApiKeyInput.value = storedKey; keyStatus.innerText = "Status: Loaded from Browser Storage"; keyStatus.style.color = "#4ade80"; }
 
-            // Try to load key from a local (git-ignored) config file
             try {
                 const configRes = await fetch('config.json');
                 if (configRes.ok) {
                     const configData = await configRes.json();
                     if (configData.key && configData.key !== "PASTE_YOUR_KEY_HERE") {
-                        console.log("Found API key in config.json");
                         xcApiKeyInput.value = configData.key;
                         xcApiKeyInput.disabled = true;
                         xcApiKeyInput.style.opacity = "0.7";
-                        xcApiKeyInput.placeholder = "Key managed by Repo Secret";
                         localStorage.setItem('mimid_xc_key', configData.key);
-                        keyStatus.innerText = "Key Status: Active (GitHub Secret)";
+                        keyStatus.innerText = "Status: Active (System Secret)";
                         keyStatus.style.color = "#4ade80";
                     }
                 }
-            } catch (e) {
-                // Ignore if config.json doesn't exist (expected for GitHub Pages)
-            }
+            } catch (e) { }
 
             try {
                 const res = await fetch('all_species.json');
-                if (!res.ok) throw new Error("Could not load all_species.json");
-
+                if (!res.ok) throw new Error("Could not load species database");
                 SPECIES_LIST = await res.json();
-                console.log(`Loaded ${SPECIES_LIST.length} species from JSON.`);
-
-                SPECIES_LIST.forEach(s => {
-                    if (s.sci) SCI_TO_FAMILY[s.sci] = s.family;
-                    if (s.en) EN_TO_SCI[s.en] = s.sci;
-                });
-
+                SPECIES_LIST.forEach(s => { if (s.sci) SCI_TO_FAMILY[s.sci] = s.family; if (s.en) EN_TO_SCI[s.en] = s.sci; });
                 loadingOverlay.classList.add('hidden');
                 populateFamilyDropdown();
-                console.log("App ready.");
             } catch (e) {
-                console.error("Initialization failed:", e);
                 loadingOverlay.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
             }
         }
