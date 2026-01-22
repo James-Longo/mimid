@@ -168,20 +168,32 @@
             if (speciesMetadataCache.has(species)) return speciesMetadataCache.get(species);
 
             const sciName = EN_TO_SCI[species] || species;
-            let q = `sci:"${sciName}" q:A len:10-60`;
+            // Relaxed query: scientific name and length only. 
+            // Removed q:A to significantly increase recording hit rates.
+            let q = `${sciName} len:10-60`;
             console.log(`Fetching XC data for ${species} (${sciName})...`);
 
-            try {
+            const tryFetch = async (proxyBase) => {
                 const xcUrl = `https://xeno-canto.org/api/2/recordings?query=${encodeURIComponent(q)}`;
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(xcUrl)}`;
-
-                const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error(`Proxy error: ${response.status}`);
-
+                const response = await fetch(`${proxyBase}${encodeURIComponent(xcUrl)}`);
+                if (!response.ok) throw new Error(`Status ${response.status}`);
                 const wrapper = await response.json();
-                const data = JSON.parse(wrapper.contents);
-                const recordings = data.recordings || [];
+                // AllOrigins wraps in .contents, Codetabs returns raw
+                return typeof wrapper.contents === 'string' ? JSON.parse(wrapper.contents) : wrapper;
+            };
 
+            try {
+                let data;
+                try {
+                    // Try AllOrigins first
+                    data = await tryFetch("https://api.allorigins.win/get?url=");
+                } catch (e) {
+                    console.warn(`AllOrigins failed for ${species}, trying Codetabs...`);
+                    // Fallback to Codetabs proxy
+                    data = await tryFetch("https://api.codetabs.com/v1/proxy?url=");
+                }
+
+                const recordings = data.recordings || [];
                 console.log(`Received ${recordings.length} recordings for ${species}`);
 
                 recordings.forEach(rec => {
@@ -288,16 +300,26 @@
             speciesList.forEach(sp => { if (speciesMetadataCache.has(sp)) allRecordings.push(...speciesMetadataCache.get(sp)); });
 
             if (fetchList.length > 0) {
-                console.log(`Need to fetch ${fetchList.length} species...`);
-                // Use allSettled to prevent one failure from blocking everything
-                const results = await Promise.allSettled(fetchList.map(sp => fetchSpeciesData(sp)));
-                results.forEach((res, i) => {
-                    if (res.status === 'fulfilled') {
-                        allRecordings.push(...res.value);
-                    } else {
-                        console.warn(`Failed to fetch ${fetchList[i]}`);
+                console.log(`Fetching ${fetchList.length} species in batches...`);
+                // Batch requests (5 at a time) to avoid overloading proxies/XC
+                const batchSize = 5;
+                for (let i = 0; i < fetchList.length; i += batchSize) {
+                    const batch = fetchList.slice(i, i + batchSize);
+                    const batchResults = await Promise.allSettled(batch.map(sp => fetchSpeciesData(sp)));
+
+                    batchResults.forEach((res, idx) => {
+                        if (res.status === 'fulfilled') {
+                            allRecordings.push(...res.value);
+                        } else {
+                            console.warn(`Failed to fetch ${batch[idx]}`);
+                        }
+                    });
+
+                    // Small breathing room between batches
+                    if (i + batchSize < fetchList.length) {
+                        await new Promise(r => setTimeout(r, 600));
                     }
-                });
+                }
             }
 
             console.log(`Total recordings available: ${allRecordings.length}`);
