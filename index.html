@@ -191,17 +191,15 @@
 
             const sciName = EN_TO_SCI[species] || species;
             const apiKey = xcApiKeyInput.value.trim() || 'demo';
+            const maskKey = (key) => key.length > 8 ? key.substring(0, 4) + '...' + key.substring(key.length - 4) : '****';
 
-            // API v3 uses 'sp:' for scientific names. 'sci:' is no longer used.
             let q = `sp:"${sciName}" q:A len:10-60`;
-
             const gCountry = globalCountryInput.value.trim();
             const gType = globalTypeInput.value.trim();
-
             if (gCountry) q += ` cnt:"${gCountry}"`;
             if (gType) q += ` type:"${gType}"`;
 
-            console.log(`Fetching XC data for ${species}: [${q}]`);
+            console.log(`Fetching XC data for ${species}: [${q}] (Key: ${maskKey(apiKey)})`);
 
             const tryFetch = async (proxyBase) => {
                 const xcUrl = `https://xeno-canto.org/api/3/recordings?query=${encodeURIComponent(q)}&key=${apiKey}`;
@@ -211,36 +209,46 @@
                 return typeof wrapper.contents === 'string' ? JSON.parse(wrapper.contents) : wrapper;
             };
 
+            const proxies = [
+                "https://api.allorigins.win/get?url=",
+                "https://api.codetabs.com/v1/proxy?url=",
+                "https://corsproxy.io/?"
+            ];
+
             try {
-                let data;
-                try {
-                    // Try Primary Proxy (AllOrigins)
-                    data = await tryFetch("https://api.allorigins.win/get?url=");
-                } catch (e) {
-                    console.warn(`AllOrigins failed for ${species}, trying Codetabs...`);
-                    // Fallback Proxy (Codetabs)
-                    data = await tryFetch("https://api.codetabs.com/v1/proxy?url=");
-                }
+                let lastErr = null;
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    for (const proxy of proxies) {
+                        try {
+                            const data = await tryFetch(proxy);
 
-                const recordings = data.recordings || [];
-                console.log(`Received ${recordings.length} recordings for ${species}`);
+                            if (data.error) {
+                                const msg = (typeof data.error === 'object' ? data.error.message : data.message) || data.error;
+                                if (data.error === "client_error" || msg.toLowerCase().includes("api key")) {
+                                    throw new Error("Invalid or Missing API Key");
+                                }
+                                throw new Error(msg || "Unknown API Error");
+                            }
 
-                if (data.error) {
-                    const msg = (typeof data.error === 'object' ? data.error.message : data.message) || data.error;
-                    console.error(`XC API Error: ${msg}`);
-                    if (data.error === "client_error" || msg.includes("API key")) {
-                        throw new Error("Invalid or Missing API Key");
+                            const recordings = data.recordings || [];
+                            console.log(`Received ${recordings.length} recordings for ${species}`);
+
+                            recordings.forEach(rec => {
+                                const sci = `${rec.gen || ''} ${rec.sp || ''}`.trim();
+                                if (SCI_TO_FAMILY[sci]) rec.family = SCI_TO_FAMILY[sci];
+                            });
+
+                            speciesMetadataCache.set(species, recordings);
+                            return recordings;
+                        } catch (e) {
+                            lastErr = e;
+                            console.warn(`Proxy ${proxy} failed for ${species}: ${e.message}`);
+                            if (e.message.includes("API Key")) throw e;
+                        }
                     }
-                    throw new Error(msg || "Unknown API Error");
+                    if (attempt === 0) await new Promise(r => setTimeout(r, 1000));
                 }
-
-                recordings.forEach(rec => {
-                    const sci = `${rec.gen || ''} ${rec.sp || ''}`.trim();
-                    if (SCI_TO_FAMILY[sci]) rec.family = SCI_TO_FAMILY[sci];
-                });
-
-                speciesMetadataCache.set(species, recordings);
-                return recordings;
+                throw lastErr || new Error("All proxies failed");
             } catch (e) {
                 console.error(`XC Fetch failed for ${species}:`, e);
                 return { error: e.message };
@@ -338,15 +346,17 @@
             speciesList.forEach(sp => { if (speciesMetadataCache.has(sp)) allRecordings.push(...speciesMetadataCache.get(sp)); });
 
             if (fetchList.length > 0) {
-                console.log(`Fetching ${fetchList.length} species in batches...`);
+                console.log(`Fetching ${fetchList.length} species with high-reliability mode...`);
                 typeFilters.innerHTML = `Loading ${fetchList.length} species...`;
 
-                const batchSize = 5;
+                const batchSize = 2; // Reduced to be extremely gentle
                 let errorCount = 0;
                 let lastError = "";
 
                 for (let i = 0; i < fetchList.length; i += batchSize) {
                     const batch = fetchList.slice(i, i + batchSize);
+                    typeFilters.innerHTML = `Loading ${i + batch.length}/${fetchList.length} species...`;
+
                     const batchResults = await Promise.allSettled(batch.map(sp => fetchSpeciesData(sp)));
 
                     batchResults.forEach((res, idx) => {
@@ -358,14 +368,14 @@
                                 allRecordings.push(...(res.value || []));
                             }
                         } else {
-                            console.warn(`Failed to fetch ${batch[idx]}`);
+                            console.warn(`System logic error for ${batch[idx]}`);
                             errorCount++;
                         }
                     });
 
-                    // Small breathing room between batches
+                    // Breathing room to avoid rate limits
                     if (i + batchSize < fetchList.length) {
-                        await new Promise(r => setTimeout(r, 600));
+                        await new Promise(r => setTimeout(r, 500));
                     }
                 }
 
