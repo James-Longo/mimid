@@ -422,10 +422,10 @@
             currentRecord = speciesRecordings[Math.floor(Math.random() * speciesRecordings.length)];
 
             isFlipped = false;
-            cardContainer.classList.remove('flipped');
-            revealBtn.style.display = 'block';
-            revealBtn.innerText = "Reveal Answer";
-            ratingButtons.classList.add('hidden-card');
+            // cardContainer.classList.remove('flipped'); // Handled before delay
+            // revealBtn.style.display = 'block'; // Handled before delay
+            // ratingButtons.classList.add('hidden-card'); // Handled before delay
+
             speciesImageEl.src = ""; speciesImageEl.style.display = 'none'; imageAttributionEl.innerText = "";
             const sci = `${currentRecord.gen} ${currentRecord.sp}`.trim();
             fetchBirdImage(sci).then(img => {
@@ -442,20 +442,7 @@
         function playAudio() { birdAudio.play(); viz.style.display = 'flex'; playBtn.style.display = 'none'; pauseBtn.style.display = 'flex'; }
         function pauseAudio() { birdAudio.pause(); viz.style.display = 'none'; pauseBtn.style.display = 'none'; playBtn.style.display = 'flex'; }
 
-        let isWaitingForNext = false;
-
-        revealBtn.onclick = () => {
-            if (isWaitingForNext) {
-                isWaitingForNext = false;
-                loadNext();
-            } else {
-                isFlipped = true;
-                cardContainer.classList.add('flipped');
-                revealBtn.style.display = 'none';
-                ratingButtons.classList.remove('hidden-card');
-            }
-        };
-
+        revealBtn.onclick = () => { isFlipped = true; cardContainer.classList.add('flipped'); revealBtn.style.display = 'none'; ratingButtons.classList.remove('hidden-card'); };
         playBtn.onclick = (e) => { e.stopPropagation(); playAudio(); };
         pauseBtn.onclick = (e) => { e.stopPropagation(); pauseAudio(); };
         cardContainer.onclick = () => { if (birdAudio.paused) playAudio(); else pauseAudio(); };
@@ -469,11 +456,17 @@
             else { card.easyStreak++; if (card.easyStreak >= 3) { card.mastered = true; currentPool = currentPool.filter(r => String(r.id) !== id); } }
             localStorage.setItem('mimid_metadata', JSON.stringify({ ...meta, [id]: card }));
 
-            // Paused flow:
+            // Flip back immediately
+            isFlipped = false;
+            cardContainer.classList.remove('flipped');
             ratingButtons.classList.add('hidden-card');
-            revealBtn.innerText = "Next Card";
-            revealBtn.style.display = "block";
-            isWaitingForNext = true;
+
+            // Wait for flip animation (600ms) to finish before loading next card content
+            // This prevents "spoiling" the next card while it's still visible during the flip
+            setTimeout(() => {
+                revealBtn.style.display = 'block';
+                loadNext();
+            }, 600);
         });
 
         async function init() {

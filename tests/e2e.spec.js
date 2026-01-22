@@ -51,10 +51,8 @@ test('mimid e2e flow', async ({ page }) => {
     await expect(easyBtn).toBeVisible();
     await easyBtn.click();
 
-    // Verify "Next Card" button appears and click it
-    await expect(revealBtn).toHaveText("Next Card");
-    await revealBtn.click();
-    await expect(revealBtn).toHaveText("Reveal Answer");
+    // Wait for the flip animation time + small buffer
+    await page.waitForTimeout(700);
 
     // Verify next card is loaded (reveal button should be back or we see a new card)
     await expect(revealBtn).toBeVisible();
