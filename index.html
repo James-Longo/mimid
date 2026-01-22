@@ -356,7 +356,7 @@
             let errorCount = 0;
             let lastError = "";
 
-            const batchSize = 10;
+            const batchSize = 5;
             for (let i = 0; i < speciesList.length; i += batchSize) {
                 const batch = speciesList.slice(i, i + batchSize);
                 const progress = Math.round((i / speciesList.length) * 100);
