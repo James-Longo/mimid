@@ -167,8 +167,11 @@
             if (speciesMetadataCache.has(species)) return speciesMetadataCache.get(species);
             let q = `en:"${species}" q:A len:10-60`;
             try {
-                // Direct Xeno-Canto API v2
-                const response = await fetch(`https://xeno-canto.org/api/2/recordings?query=${encodeURIComponent(q)}`);
+                // Use a CORS proxy for static hosting (XC does not support CORS)
+                const xcUrl = `https://xeno-canto.org/api/2/recordings?query=${encodeURIComponent(q)}`;
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(xcUrl)}`;
+
+                const response = await fetch(proxyUrl);
                 const data = await response.json();
                 const recordings = data.recordings || [];
                 recordings.forEach(rec => {
