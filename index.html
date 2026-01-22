@@ -402,7 +402,25 @@
 
         function loadNext() {
             if (currentPool.length === 0) { alert("No recordings available for this criteria!"); location.reload(); return; }
-            currentRecord = currentPool[Math.floor(Math.random() * currentPool.length)];
+
+            // Group recordings by species ID to ensure balanced species selection
+            const speciesMap = {};
+            currentPool.forEach(rec => {
+                const spId = `${rec.gen} ${rec.sp}`; // Use scientific name as unique key
+                if (!speciesMap[spId]) speciesMap[spId] = [];
+                speciesMap[spId].push(rec);
+            });
+
+            const uniqueSpecies = Object.keys(speciesMap);
+            if (uniqueSpecies.length === 0) { alert("No species found!"); location.reload(); return; }
+
+            // 1. Pick a random species
+            const randomSpecies = uniqueSpecies[Math.floor(Math.random() * uniqueSpecies.length)];
+            const speciesRecordings = speciesMap[randomSpecies];
+
+            // 2. Pick a random recording from that species
+            currentRecord = speciesRecordings[Math.floor(Math.random() * speciesRecordings.length)];
+
             isFlipped = false;
             cardContainer.classList.remove('flipped');
             revealBtn.style.display = 'block';
