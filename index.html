@@ -617,6 +617,9 @@
                     if (configData.key && configData.key !== "PASTE_YOUR_KEY_HERE") {
                         console.log("Found API key in config.json");
                         xcApiKeyInput.value = configData.key;
+                        xcApiKeyInput.disabled = true;
+                        xcApiKeyInput.style.opacity = "0.7";
+                        xcApiKeyInput.placeholder = "Key managed by Repo Secret";
                         localStorage.setItem('mimid_xc_key', configData.key);
                         keyStatus.innerText = "Key Status: Active (GitHub Secret)";
                         keyStatus.style.color = "#4ade80";
