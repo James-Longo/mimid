@@ -559,7 +559,64 @@
             };
         });
 
-        // ... existing render functions ...
+        let eBirdKey = "";
+        let ebirdToSci = {};
+        let regionsData = {};
+        let selectedRegionCode = "";
+        let regionSpeciesPool = null; // Set of Scientific Names
+
+        function refreshSpeciesList() {
+            const summaryDiv = document.getElementById('speciesListSummary');
+            const countBadge = document.getElementById('speciesCountBadge');
+            const previewPara = document.getElementById('speciesListPreview');
+
+            // If nothing is selected at all, hide
+            if (selectedFamilies.size === 0 && selectedSpecies.size === 0 && !selectedRegionCode) {
+                summaryDiv.style.display = 'none';
+                return;
+            }
+
+            summaryDiv.style.display = 'block';
+
+            let pool = [];
+
+            // 1. Determine the base scientific names from eBird (if region selected)
+            let regionalSciNames = regionSpeciesPool;
+
+            // 2. Identify candidate species (English names) from Families and Custom selection
+            let candidates = new Set(selectedSpecies);
+            selectedFamilies.forEach(fam => {
+                SPECIES_LIST.filter(s => s.family === fam).forEach(s => candidates.add(s.en));
+            });
+
+            if (selectedRegionCode && !regionalSciNames) {
+                // We have a region but haven't fetched the pool yet
+                countBadge.innerText = "...";
+                previewPara.innerText = "Fetching regional data...";
+                return;
+            }
+
+            if (candidates.size > 0) {
+                // Intersection logic: If families/species are selected, they MUST be in the region (if region is set)
+                pool = Array.from(candidates).filter(en => {
+                    if (!regionalSciNames) return true; // No region filter, keep all
+                    const sci = EN_TO_SCI[en];
+                    return regionalSciNames.has(sci);
+                });
+            } else if (regionalSciNames) {
+                // Only region is selected, show all birds in our DB that are in that region
+                pool = SPECIES_LIST.filter(s => regionalSciNames.has(s.sci)).map(s => s.en);
+            }
+
+            countBadge.innerText = pool.length;
+            previewPara.innerText = pool.sort().join(', ');
+
+            if (pool.length === 0) {
+                countBadge.style.background = 'var(--danger)';
+            } else {
+                countBadge.style.background = 'var(--accent)';
+            }
+        }
 
         // ... init function ...
         async function init() {
