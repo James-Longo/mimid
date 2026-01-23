@@ -27,25 +27,20 @@
     </div>
 
     <div id="app">
-        <header>
-            <h1>mimid</h1>
-        </header>
+        <div id="setupView" class="setup-container">
+            <header style="text-align: center; margin-bottom: 2rem;">
+                <h1>mimid</h1>
+                <p style="color: var(--text-muted); margin-top: 0.5rem;">Bird Vocalization Training</p>
+            </header>
 
-        <aside class="settings-panel">
-            <div class="settings-section">
-                <h3>Search Criteria</h3>
+            <div class="settings-card">
+                <h3>Configure Session</h3>
 
                 <div class="settings-group">
-                    <h4>Region Filter</h4>
-                    <select id="regionSource" class="search-input" style="cursor: pointer; margin-bottom: 0.5rem;">
-                        <option value="">No Region Filter</option>
-                        <option value="us-states">US State</option>
-                        <option value="ca-provinces">CA Province</option>
-                        <option value="countries">Country</option>
-                    </select>
-                    <div id="regionSearchContainer" class="hidden" style="position: relative;">
-                        <input type="text" id="regionSearch" class="search-input" placeholder="Search region..."
-                            autocomplete="off">
+                    <h4>Region (Optional)</h4>
+                    <div style="position: relative;">
+                        <input type="text" id="regionSearch" class="search-input"
+                            placeholder="Search State, Province, or Country..." autocomplete="off">
                         <div id="regionResults" class="dropdown-results hidden"></div>
                     </div>
                 </div>
@@ -75,104 +70,103 @@
                     </div>
                     <div class="filter-list" id="selectedSpeciesList"></div>
                 </div>
-            </div>
 
-            <button class="create-session-btn" id="createSessionBtn">Create Session</button>
-
-            <div id="speciesListSummary" class="settings-group" style="display: none;">
-                <h4 style="display: flex; justify-content: space-between; align-items: center;">
-                    Species List
-                    <span id="speciesCountBadge" class="filter-chip" style="margin: 0;">0</span>
-                </h4>
-                <p id="speciesListPreview"></p>
-            </div>
-
-            <p id="poolStatus"
-                style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; height: 1.2em;">
-            </p>
-
-            <div id="advancedSettings" class="hidden"
-                style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-                <input type="text" id="xcApiKey" class="search-input" placeholder="XC API Key" autocomplete="on">
-                <input type="text" id="eBirdApiKey" class="search-input" placeholder="eBird API Key" autocomplete="on"
-                    style="margin-top: 0.5rem;">
-                <p id="keyStatus" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.4rem;">Status:
-                    Checking...</p>
-            </div>
-            <p class="advanced-toggle" id="toggleAdvanced">Advanced Settings</p>
-        </aside>
-
-        <main class="main-content">
-            <div id="loadingBanner" class="progress-banner hidden">
-                <p id="loadingStatus" style="font-size: 0.9rem; font-weight: 600;">Preparing Session...</p>
-                <div class="progress-bar-bg">
-                    <div id="progressBarFill" class="progress-bar-fill"></div>
+                <div id="speciesListSummary" class="settings-group"
+                    style="display: none; border-color: var(--accent-primary);">
+                    <h4 style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--text-main);">Projected Species List</span>
+                        <span id="speciesCountBadge" class="filter-chip" style="margin: 0;">0</span>
+                    </h4>
+                    <p id="speciesListPreview"></p>
                 </div>
-            </div>
 
-            <div id="startScreen" style="text-align: center;">
-                <p style="margin-bottom: 2rem; font-size: 1.2rem; max-width: 500px; line-height: 1.6;">
-                    Select your <strong>study species</strong> and <strong>vocalization types</strong> from the sidebar,
-                    then click Create Session to begin.
+                <button class="create-session-btn" id="createSessionBtn">Start Study Session</button>
+
+                <p id="poolStatus"
+                    style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 1rem; height: 1.2em;">
                 </p>
-                <div style="color: var(--text-muted); font-size: 0.9rem;">
-                    <!-- Session status moved to sidebar -->
-                </div>
-                <button class="primary hidden" id="startBtn"
-                    style="font-size: 1.2rem; padding: 1rem 3rem; margin-top: 1.5rem;">Start Quiz</button>
-            </div>
 
-            <div class="card-container hidden-card" id="cardContainer">
-                <div class="flashcard">
-                    <div class="card-face front">
-                        <div class="audio-controls">
-                            <button class="play-button" id="playButton">
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
-                                    <path d="M8 5v14l11-7z" />
-                                </svg>
-                            </button>
-                            <button class="play-button" id="pauseButton" style="display: none;">
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
-                                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                                </svg>
-                            </button>
-                            <p id="promptText">Playing vocalization...</p>
-                            <div class="visualizer" id="viz" style="display: none;">
-                                <div class="bar" style="animation-delay: 0.0s"></div>
-                                <div class="bar" style="animation-delay: 0.2s"></div>
-                                <div class="bar" style="animation-delay: 0.4s"></div>
-                                <div class="bar" style="animation-delay: 0.1s"></div>
-                                <div class="bar" style="animation-delay: 0.3s"></div>
+                <p class="advanced-toggle" id="toggleAdvanced" style="margin-top: 1rem;">Advanced Settings</p>
+                <div id="advancedSettings" class="hidden"
+                    style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--glass-border);">
+                    <input type="text" id="xcApiKey" class="search-input" placeholder="XC API Key" autocomplete="on">
+                    <input type="text" id="eBirdApiKey" class="search-input" placeholder="eBird API Key"
+                        autocomplete="on" style="margin-top: 0.5rem;">
+                    <p id="keyStatus" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.4rem;">Status:
+                        Checking...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="studyView" class="active-session-container hidden">
+            <header class="session-header">
+                <button class="secondary" id="endSessionBtn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Wait, go
+                    back</button>
+                <h2 style="font-size: 1.2rem; color: var(--text-muted);">Study Session</h2>
+                <div style="width: 100px;"></div> <!-- Spacer -->
+            </header>
+
+            <main class="main-content">
+                <div id="loadingBanner" class="progress-banner hidden">
+                    <p id="loadingStatus" style="font-size: 0.9rem; font-weight: 600;">Preparing Session...</p>
+                    <div class="progress-bar-bg">
+                        <div id="progressBarFill" class="progress-bar-fill"></div>
+                    </div>
+                </div>
+
+                <!-- Start Screen Removed - Merged into Setup View -->
+
+                <div class="card-container hidden-card" id="cardContainer">
+                    <div class="flashcard">
+                        <div class="card-face front">
+                            <div class="audio-controls">
+                                <button class="play-button" id="playButton">
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                                        <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                </button>
+                                <button class="play-button" id="pauseButton" style="display: none;">
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                                    </svg>
+                                </button>
+                                <p id="promptText">Playing vocalization...</p>
+                                <div class="visualizer" id="viz" style="display: none;">
+                                    <div class="bar" style="animation-delay: 0.0s"></div>
+                                    <div class="bar" style="animation-delay: 0.2s"></div>
+                                    <div class="bar" style="animation-delay: 0.4s"></div>
+                                    <div class="bar" style="animation-delay: 0.1s"></div>
+                                    <div class="bar" style="animation-delay: 0.3s"></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="card-face back">
-                        <div class="species-image-container">
-                            <img id="speciesImage" src="" alt="">
-                            <p id="imageAttribution" class="attribution"></p>
+                        <div class="card-face back">
+                            <div class="species-image-container">
+                                <img id="speciesImage" src="" alt="">
+                                <p id="imageAttribution" class="attribution"></p>
+                            </div>
+                            <h2 class="species-name" id="speciesName">Unknown</h2>
+                            <p class="species-family" id="speciesFamily"
+                                style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;"></p>
+                            <p class="vocalization-type" id="vocalType">Song</p>
+                            <span class="location-tag" id="locationTag">Unknown</span>
                         </div>
-                        <h2 class="species-name" id="speciesName">Unknown</h2>
-                        <p class="species-family" id="speciesFamily"
-                            style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;"></p>
-                        <p class="vocalization-type" id="vocalType">Song</p>
-                        <span class="location-tag" id="locationTag">Unknown</span>
                     </div>
                 </div>
-            </div>
 
-            <div class="controls hidden-card" id="sessionScreen">
-                <button class="secondary" id="revealBtn">Reveal Answer</button>
-                <div id="ratingButtons" class="rating-group hidden-card">
-                    <button class="rating-btn again" data-grade="1">Incorrect</button>
-                    <button class="rating-btn hard" data-grade="2">Correct (Hard)</button>
-                    <button class="rating-btn easy" data-grade="4">Correct (Easy)</button>
+                <div class="controls hidden-card" id="sessionScreen">
+                    <button class="secondary" id="revealBtn">Reveal Answer</button>
+                    <div id="ratingButtons" class="rating-group hidden-card">
+                        <button class="rating-btn again" data-grade="1">Incorrect</button>
+                        <button class="rating-btn hard" data-grade="2">Correct (Hard)</button>
+                        <button class="rating-btn easy" data-grade="4">Correct (Easy)</button>
+                    </div>
+                    <button class="secondary" id="resetBtn"
+                        style="margin-top: 1rem; background: var(--danger); opacity: 0.8; color: #ff6b6b; border-color: #ff6b6b;">Reset
+                        All Progress</button>
                 </div>
-                <button class="secondary" id="resetBtn"
-                    style="margin-top: 1rem; background: var(--danger); opacity: 0.8; color: #ff6b6b; border-color: #ff6b6b;">Reset
-                    All Progress</button>
-            </div>
-            <p id="statsText" style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;"></p>
-        </main>
+                <p id="statsText" style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;"></p>
+        </div>
     </div>
 
     <audio id="birdAudio"></audio>
@@ -319,7 +313,26 @@
 
         toggleAdvanced.onclick = () => advancedSettings.classList.toggle('hidden');
 
+        const setupView = document.getElementById('setupView');
+        const studyView = document.getElementById('studyView');
+        const endSessionBtn = document.getElementById('endSessionBtn');
+
+        let allRegions = []; // Unified list of all regions
+
+        function endSession() {
+            if (confirm("End current session and go back to setup?")) {
+                isSessionActive = false;
+                birdAudio.pause();
+                setupView.classList.remove('hidden');
+                studyView.classList.add('hidden');
+                // Reset study view state if needed, or keep it for next time
+            }
+        }
+
+        endSessionBtn.onclick = endSession;
+
         async function createSession() {
+            // ... existing calculation logic ...
             // Calculate final list again to be absolutely sure
             let finalSpecies = [];
             let regionalSciNames = regionSpeciesPool;
@@ -341,13 +354,11 @@
                 return alert("No species found for the selected criteria. Check your region/family overlap!");
             }
 
+            // UI Transition
             loadingBanner.classList.remove('hidden');
             createSessionBtn.disabled = true;
-            startBtn.classList.add('hidden');
 
             const speciesList = finalSpecies;
-
-
             currentPool = [];
             let errorCount = 0;
             let lastError = "";
@@ -368,14 +379,22 @@
                 if (i + batchSize < speciesList.length) await new Promise(r => setTimeout(r, 600));
             }
 
-            progressBarFill.style.width = '100%';
-            loadingStatus.innerText = `Session Created! Loaded ${currentPool.length} recordings.`;
-            document.getElementById('poolStatus').innerText = `Session Ready: ${currentPool.length} recordings.`;
-
-            if (currentPool.length > 0) startBtn.classList.remove('hidden');
-            else if (errorCount > 0) alert(`Could not load any recordings. Last error: ${lastError}`);
-
+            loadingBanner.classList.add('hidden');
             createSessionBtn.disabled = false;
+
+            if (currentPool.length > 0) {
+                // SWITCH VIEWS
+                setupView.classList.add('hidden');
+                studyView.classList.remove('hidden');
+
+                // Start Session
+                isSessionActive = true;
+                sessionScreen.classList.remove('hidden-card');
+                cardContainer.classList.remove('hidden-card');
+                loadNext();
+            } else if (errorCount > 0) {
+                alert(`Could not load any recordings. Last error: ${lastError}`);
+            }
         }
 
         createSessionBtn.onclick = createSession;
@@ -424,24 +443,6 @@
             refreshSpeciesList();
         }
 
-        startBtn.onclick = () => {
-            console.log('Start button clicked');
-            try {
-                isSessionActive = true;
-                startScreen.style.display = 'none';
-                sessionScreen.style.display = 'flex';
-                sessionScreen.classList.remove('hidden-card');
-                console.log('Session screen classes:', sessionScreen.className);
-                console.log('Session screen display:', sessionScreen.style.display);
-
-                cardContainer.classList.remove('hidden-card');
-                loadNext();
-            } catch (e) {
-                console.error('Error starting session:', e);
-                alert('Error starting session: ' + e.message);
-            }
-        };
-
         resetBtn.onclick = () => { if (confirm("This will clear all your learning progress (mastered birds, etc). Proceed?")) { localStorage.removeItem('mimid_metadata'); location.reload(); } };
 
         function resetAudioControls() {
@@ -479,6 +480,12 @@
 
             isFlipped = false;
 
+            // UI Reset for new card
+            cardContainer.classList.remove('hidden-card'); // Ensure visible
+            revealBtn.style.display = 'block'; // Reset answer button
+            ratingButtons.classList.add('hidden-card'); // Hide rating buttons
+            cardContainer.classList.remove('flipped'); // Ensure front face
+
             speciesImageEl.src = ""; speciesImageEl.style.display = 'none'; imageAttributionEl.innerText = "";
             const sci = `${currentRecord.gen} ${currentRecord.sp}`.trim();
             fetchBirdImage(sci).then(img => {
@@ -498,8 +505,7 @@
                     pauseBtn.style.display = 'flex';
                 })
                 .catch((e) => {
-                    console.log("Autoplay prevented:", e);
-                    // UI is already in 'Stopped' state (Play button visible), so user can manually play.
+                    console.log("Autoplay prevented:", e.message);
                 });
         }
 
@@ -553,177 +559,90 @@
             };
         });
 
-        let eBirdKey = "";
-        let ebirdToSci = {};
-        let regionsData = {};
-        let selectedRegionCode = "";
-        let regionSpeciesPool = null; // Set of Scientific Names
+        // ... existing render functions ...
 
-        function refreshSpeciesList() {
-            const summaryDiv = document.getElementById('speciesListSummary');
-            const countBadge = document.getElementById('speciesCountBadge');
-            const previewPara = document.getElementById('speciesListPreview');
-
-            if (selectedFamilies.size === 0 && selectedSpecies.size === 0 && !selectedRegionCode) {
-                summaryDiv.style.display = 'none';
-                return;
-            }
-
-            summaryDiv.style.display = 'block';
-
-            let pool = [];
-
-            // 1. Determine the base scientific names from eBird (if region selected)
-            let regionalSciNames = regionSpeciesPool;
-
-            // 2. Identify candidate species (English names) from Families and Custom selection
-            let candidates = new Set(selectedSpecies);
-            selectedFamilies.forEach(fam => {
-                SPECIES_LIST.filter(s => s.family === fam).forEach(s => candidates.add(s.en));
-            });
-
-            if (selectedRegionCode && !regionalSciNames) {
-                // We have a region but haven't fetched the pool yet
-                countBadge.innerText = "...";
-                previewPara.innerText = "Fetching regional data...";
-                return;
-            }
-
-            if (candidates.size > 0) {
-                // Intersection logic: If families/species are selected, they MUST be in the region (if region is set)
-                pool = Array.from(candidates).filter(en => {
-                    if (!regionalSciNames) return true; // No region filter, keep all
-                    const sci = EN_TO_SCI[en];
-                    return regionalSciNames.has(sci);
-                });
-            } else if (regionalSciNames) {
-                // Only region is selected, show all birds in our DB that are in that region
-                pool = SPECIES_LIST.filter(s => regionalSciNames.has(s.sci)).map(s => s.en);
-            }
-
-            countBadge.innerText = pool.length;
-            previewPara.innerText = pool.sort().join(', ');
-
-            if (pool.length === 0) {
-                countBadge.style.background = 'var(--danger)';
-            } else {
-                countBadge.style.background = 'var(--accent)';
-            }
-        }
-
-        const eBirdApiKeyInput = document.getElementById('eBirdApiKey');
-
+        // ... init function ...
         async function init() {
+            // ... existing key loading ...
             const keyStatus = document.getElementById('keyStatus');
             const storedXCKey = localStorage.getItem('mimid_xc_key');
             const storedEBirdKey = localStorage.getItem('mimid_ebird_key');
+            // ... (keep key loading logic) ...
+            if (storedXCKey && storedXCKey !== "demo") { xcApiKeyInput.value = storedXCKey; }
+            if (storedEBirdKey) { eBirdApiKeyInput.value = storedEBirdKey; eBirdKey = storedEBirdKey; }
+            if (storedXCKey || storedEBirdKey) { keyStatus.innerText = "Status: Loaded from Browser Storage"; keyStatus.style.color = "#4ade80"; }
 
-            if (storedXCKey && storedXCKey !== "demo") {
-                xcApiKeyInput.value = storedXCKey;
-            }
-            if (storedEBirdKey) {
-                eBirdApiKeyInput.value = storedEBirdKey;
-                eBirdKey = storedEBirdKey;
-            }
-
-            if (storedXCKey || storedEBirdKey) {
-                keyStatus.innerText = "Status: Loaded from Browser Storage";
-                keyStatus.style.color = "#4ade80";
-            }
-
-            // Sync inputs to storage and variables
-            eBirdApiKeyInput.oninput = () => {
-                eBirdKey = eBirdApiKeyInput.value.trim();
-                localStorage.setItem('mimid_ebird_key', eBirdKey);
-            };
-
-            xcApiKeyInput.oninput = () => {
-                localStorage.setItem('mimid_xc_key', xcApiKeyInput.value.trim());
-            };
+            eBirdApiKeyInput.oninput = () => { eBirdKey = eBirdApiKeyInput.value.trim(); localStorage.setItem('mimid_ebird_key', eBirdKey); };
+            xcApiKeyInput.oninput = () => { localStorage.setItem('mimid_xc_key', xcApiKeyInput.value.trim()); };
 
             try {
                 const configRes = await fetch('config.json');
                 if (configRes.ok) {
                     const configData = await configRes.json();
-
                     const xcKey = configData['xc-key'] || configData.key;
                     if (xcKey && xcKey !== "PASTE_YOUR_KEY_HERE") {
-                        xcApiKeyInput.value = xcKey;
-                        xcApiKeyInput.disabled = true;
-                        xcApiKeyInput.style.opacity = "0.7";
-                        localStorage.setItem('mimid_xc_key', xcKey);
+                        xcApiKeyInput.value = xcKey; xcApiKeyInput.disabled = true; xcApiKeyInput.style.opacity = "0.7"; localStorage.setItem('mimid_xc_key', xcKey);
                     }
-
                     const ebKey = configData['eBird-key'];
                     if (ebKey && ebKey !== "PASTE_YOUR_KEY_HERE") {
-                        eBirdKey = ebKey;
-                        eBirdApiKeyInput.value = ebKey;
-                        eBirdApiKeyInput.disabled = true;
-                        eBirdApiKeyInput.style.opacity = "0.7";
-                        localStorage.setItem('mimid_ebird_key', ebKey);
+                        eBirdKey = ebKey; eBirdApiKeyInput.value = ebKey; eBirdApiKeyInput.disabled = true; eBirdApiKeyInput.style.opacity = "0.7"; localStorage.setItem('mimid_ebird_key', ebKey);
                     }
-
-                    keyStatus.innerText = "Status: Active (System Secret)";
-                    keyStatus.style.color = "#4ade80";
+                    keyStatus.innerText = "Status: Active (System Secret)"; keyStatus.style.color = "#4ade80";
                 }
-            } catch (e) {
-                console.log("No config.json found (likely static deployment). Using manual input or local storage.");
-            }
+            } catch (e) { console.log("No config.json found."); }
+
 
             // Load eBird Taxonomy mapping
             try {
                 const mappingRes = await fetch('ebird_to_sci.json');
-                if (mappingRes.ok) {
-                    ebirdToSci = await mappingRes.json();
-                }
+                if (mappingRes.ok) { ebirdToSci = await mappingRes.json(); }
             } catch (e) { console.error("Failed to load eBird taxonomy mapping", e); }
 
-            // Load Region CSVs
-            const regionFiles = ['us-states', 'ca-provinces', 'countries'];
-            for (const file of regionFiles) {
+            // Load and Unify Region CSVs
+            const regionFiles = [
+                { file: 'us-states', type: 'US State' },
+                { file: 'ca-provinces', type: 'CA Province' },
+                { file: 'countries', type: 'Country' }
+            ];
+
+            for (const item of regionFiles) {
                 try {
-                    const res = await fetch(`regions/${file}.csv`);
+                    const res = await fetch(`regions/${item.file}.csv`);
                     if (res.ok) {
                         const csvText = await res.text();
                         const lines = csvText.split('\n').slice(1);
-                        regionsData[file] = lines.filter(l => l.trim()).map(line => {
+                        lines.forEach(line => {
+                            if (!line.trim()) return;
                             const [code, name] = line.split(',');
-                            return { code: code.trim().replace(/"/g, ''), name: name.trim().replace(/"/g, '') };
+                            allRegions.push({
+                                code: code.trim().replace(/"/g, ''),
+                                name: name.trim().replace(/"/g, ''),
+                                type: item.type
+                            });
                         });
                     }
-                } catch (e) { console.error(`Failed to load region file ${file}`, e); }
+                } catch (e) { console.error(`Failed to load region file ${item.file}`, e); }
             }
 
-            // Region Search Setup
-            const regionSource = document.getElementById('regionSource');
-            const regionSearchContainer = document.getElementById('regionSearchContainer');
+            // Unified Region Search
+            const regionSearchContainer = document.getElementById('regionSearchContainer'); // Wrapper (removed in HTML, need to check if wrapper exists or if used directly)
+            // Actually in new HTML, wrapper is div with class relative.
             const regionSearchInput = document.getElementById('regionSearch');
             const regionResults = document.getElementById('regionResults');
 
-            regionSource.onchange = () => {
-                regionSpeciesPool = null;
-                if (regionSource.value) {
-                    regionSearchContainer.classList.remove('hidden');
-                    regionSearchInput.value = "";
-                    selectedRegionCode = "";
-                } else {
-                    regionSearchContainer.classList.add('hidden');
-                    selectedRegionCode = "";
-                }
-                refreshSpeciesList();
-            };
-
             regionSearchInput.oninput = (e) => {
                 const term = e.target.value.toLowerCase();
-                const source = regionSource.value;
-                if (!source || term.length < 1) { regionResults.classList.add('hidden'); return; }
-                const matches = regionsData[source].filter(r => r.name.toLowerCase().includes(term) || r.code.toLowerCase().includes(term));
+                if (term.length < 2) { regionResults.classList.add('hidden'); return; }
+
+                const matches = allRegions.filter(r => r.name.toLowerCase().includes(term) || r.code.toLowerCase().includes(term));
                 regionResults.innerHTML = '';
+
                 if (matches.length === 0) { regionResults.classList.add('hidden'); return; }
-                matches.slice(0, 10).forEach(m => {
+
+                matches.slice(0, 50).forEach(m => { // Limit results for performance
                     const item = document.createElement('div');
                     item.className = 'dropdown-item';
-                    item.innerText = `${m.name} (${m.code})`;
+                    item.innerHTML = `<span style="font-weight:600;">${m.name}</span> <span style="font-size:0.8em; color:var(--text-muted);">(${m.type})</span>`;
                     item.onclick = async () => {
                         regionSearchInput.value = m.name;
                         selectedRegionCode = m.code;
@@ -751,12 +670,22 @@
                                 }
                             } catch (e) { console.error("eBird fetch failed", e); }
                         }
+
+                        // If we finished the loop and still no data
+                        if (!regionSpeciesPool) {
+                            console.error("Failed to load eBird data from all proxies");
+                            // Set to empty set so UI stops spinning and shows 0 matches
+                            regionSpeciesPool = new Set();
+                            refreshSpeciesList();
+                            alert("Failed to load regional data. Please check your internet connection or try another region.");
+                        }
                     };
                     regionResults.appendChild(item);
                 });
                 regionResults.classList.remove('hidden');
             };
 
+            // Load Species DB
             try {
                 const res = await fetch('all_species.json');
                 if (!res.ok) throw new Error("Could not load species database");
