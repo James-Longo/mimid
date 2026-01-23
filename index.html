@@ -36,6 +36,21 @@
                 <h3>Search Criteria</h3>
 
                 <div class="settings-group">
+                    <h4>Region Filter</h4>
+                    <select id="regionSource" class="search-input" style="cursor: pointer; margin-bottom: 0.5rem;">
+                        <option value="">No Region Filter</option>
+                        <option value="us-states">US State</option>
+                        <option value="ca-provinces">CA Province</option>
+                        <option value="countries">Country</option>
+                    </select>
+                    <div id="regionSearchContainer" class="hidden" style="position: relative;">
+                        <input type="text" id="regionSearch" class="search-input" placeholder="Search region..."
+                            autocomplete="off">
+                        <div id="regionResults" class="dropdown-results hidden"></div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
                     <h4>Vocalization Type</h4>
                     <select id="globalType" class="search-input" style="cursor: pointer;">
                         <option value="">Vocalization: Any</option>
@@ -294,15 +309,73 @@
         toggleAdvanced.onclick = () => advancedSettings.classList.toggle('hidden');
 
         async function createSession() {
-            if (selectedFamilies.size === 0 && selectedSpecies.size === 0) return alert("Select birds first!");
+            if (selectedFamilies.size === 0 && selectedSpecies.size === 0 && !selectedRegionCode) {
+                return alert("Select birds or a region first!");
+            }
 
             loadingBanner.classList.remove('hidden');
             createSessionBtn.disabled = true;
             startBtn.classList.add('hidden');
 
-            const toFetch = new Set(selectedSpecies);
-            for (const f of selectedFamilies) (await getFamilySpecies(f)).forEach(s => toFetch.add(s));
-            const speciesList = Array.from(toFetch);
+            let speciesList = [];
+
+            if (selectedRegionCode) {
+                loadingStatus.innerText = `Fetching eBird species list for region ${selectedRegionCode}...`;
+                try {
+                    const ebirdUrl = `https://api.ebird.org/v2/product/spplist/${selectedRegionCode}`;
+                    const proxies = ["https://corsproxy.io/?", "https://api.allorigins.win/get?url=", "https://api.codetabs.com/v1/proxy?url="];
+                    let regionSpeciesCodes = [];
+
+                    for (const proxy of proxies) {
+                        try {
+                            const res = await fetch(`${proxy}${encodeURIComponent(ebirdUrl)}`, {
+                                headers: { 'X-eBirdApiToken': eBirdKey }
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                regionSpeciesCodes = typeof data.contents === 'string' ? JSON.parse(data.contents) : data;
+                                break;
+                            }
+                        } catch (e) { console.error("Proxy failed for eBird", e); }
+                    }
+
+                    if (regionSpeciesCodes.length > 0) {
+                        const regionSciNames = new Set(regionSpeciesCodes.map(code => ebirdToSci[code]).filter(n => !!n));
+
+                        // If user selected specific birds, filter them by region. 
+                        // If user selected nothing but a region, we might want to pick a subset or all?
+                        // For now, let's just assume we filter the user's selection OR if they selected nothing, we take all birds from SPECIES_LIST that match the region.
+
+                        if (selectedFamilies.size > 0 || selectedSpecies.size > 0) {
+                            const userSelection = new Set(selectedSpecies);
+                            for (const f of selectedFamilies) (await getFamilySpecies(f)).forEach(s => userSelection.add(s));
+
+                            speciesList = Array.from(userSelection).filter(sp => {
+                                const sci = EN_TO_SCI[sp];
+                                return regionSciNames.has(sci);
+                            });
+                        } else {
+                            // Automatically select all birds from our database that are in the region
+                            speciesList = SPECIES_LIST.filter(s => regionSciNames.has(s.sci)).map(s => s.en);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch eBird species list", e);
+                    alert("Error fetching region data. Proceeding without region filter.");
+                }
+            }
+
+            if (speciesList.length === 0) {
+                const toFetch = new Set(selectedSpecies);
+                for (const f of selectedFamilies) (await getFamilySpecies(f)).forEach(s => toFetch.add(s));
+                speciesList = Array.from(toFetch);
+            }
+
+            if (speciesList.length === 0) {
+                loadingBanner.classList.add('hidden');
+                createSessionBtn.disabled = false;
+                return alert("No species found for the selected criteria.");
+            }
 
             currentPool = [];
             let errorCount = 0;
@@ -507,25 +580,100 @@
             };
         });
 
+        let eBirdKey = "";
+        let ebirdToSci = {};
+        let regionsData = {};
+        let selectedRegionCode = "";
+
         async function init() {
             const keyStatus = document.getElementById('keyStatus');
-            const storedKey = localStorage.getItem('mimid_xc_key');
-            if (storedKey && storedKey !== "demo") { xcApiKeyInput.value = storedKey; keyStatus.innerText = "Status: Loaded from Browser Storage"; keyStatus.style.color = "#4ade80"; }
+            const storedXCKey = localStorage.getItem('mimid_xc_key');
+            if (storedXCKey && storedXCKey !== "demo") {
+                xcApiKeyInput.value = storedXCKey;
+                keyStatus.innerText = "Status: Loaded from Browser Storage";
+                keyStatus.style.color = "#4ade80";
+            }
 
             try {
                 const configRes = await fetch('config.json');
                 if (configRes.ok) {
                     const configData = await configRes.json();
-                    if (configData.key && configData.key !== "PASTE_YOUR_KEY_HERE") {
-                        xcApiKeyInput.value = configData.key;
+
+                    const xcKey = configData['xc-key'] || configData.key;
+                    if (xcKey && xcKey !== "PASTE_YOUR_KEY_HERE") {
+                        xcApiKeyInput.value = xcKey;
                         xcApiKeyInput.disabled = true;
                         xcApiKeyInput.style.opacity = "0.7";
-                        localStorage.setItem('mimid_xc_key', configData.key);
+                        localStorage.setItem('mimid_xc_key', xcKey);
                         keyStatus.innerText = "Status: Active (System Secret)";
                         keyStatus.style.color = "#4ade80";
                     }
+
+                    eBirdKey = configData['eBird-key'];
                 }
             } catch (e) { }
+
+            // Load eBird Taxonomy mapping
+            try {
+                const mappingRes = await fetch('ebird_to_sci.json');
+                if (mappingRes.ok) {
+                    ebirdToSci = await mappingRes.json();
+                }
+            } catch (e) { console.error("Failed to load eBird taxonomy mapping", e); }
+
+            // Load Region CSVs
+            const regionFiles = ['us-states', 'ca-provinces', 'countries'];
+            for (const file of regionFiles) {
+                try {
+                    const res = await fetch(`regions/${file}.csv`);
+                    if (res.ok) {
+                        const csvText = await res.text();
+                        const lines = csvText.split('\n').slice(1);
+                        regionsData[file] = lines.filter(l => l.trim()).map(line => {
+                            const [code, name] = line.split(',');
+                            return { code: code.trim().replace(/"/g, ''), name: name.trim().replace(/"/g, '') };
+                        });
+                    }
+                } catch (e) { console.error(`Failed to load region file ${file}`, e); }
+            }
+
+            // Region Search Setup
+            const regionSource = document.getElementById('regionSource');
+            const regionSearchContainer = document.getElementById('regionSearchContainer');
+            const regionSearchInput = document.getElementById('regionSearch');
+            const regionResults = document.getElementById('regionResults');
+
+            regionSource.onchange = () => {
+                if (regionSource.value) {
+                    regionSearchContainer.classList.remove('hidden');
+                    regionSearchInput.value = "";
+                    selectedRegionCode = "";
+                } else {
+                    regionSearchContainer.classList.add('hidden');
+                    selectedRegionCode = "";
+                }
+            };
+
+            regionSearchInput.oninput = (e) => {
+                const term = e.target.value.toLowerCase();
+                const source = regionSource.value;
+                if (!source || term.length < 1) { regionResults.classList.add('hidden'); return; }
+                const matches = regionsData[source].filter(r => r.name.toLowerCase().includes(term) || r.code.toLowerCase().includes(term));
+                regionResults.innerHTML = '';
+                if (matches.length === 0) { regionResults.classList.add('hidden'); return; }
+                matches.slice(0, 10).forEach(m => {
+                    const item = document.createElement('div');
+                    item.className = 'dropdown-item';
+                    item.innerText = `${m.name} (${m.code})`;
+                    item.onclick = () => {
+                        regionSearchInput.value = m.name;
+                        selectedRegionCode = m.code;
+                        regionResults.classList.add('hidden');
+                    };
+                    regionResults.appendChild(item);
+                });
+                regionResults.classList.remove('hidden');
+            };
 
             try {
                 const res = await fetch('all_species.json');
