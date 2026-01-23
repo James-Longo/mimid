@@ -565,6 +565,7 @@
         async function init() {
             // ... existing key loading ...
             const keyStatus = document.getElementById('keyStatus');
+            const eBirdApiKeyInput = document.getElementById('eBirdApiKey'); // Defined here in scope
             const storedXCKey = localStorage.getItem('mimid_xc_key');
             const storedEBirdKey = localStorage.getItem('mimid_ebird_key');
             // ... (keep key loading logic) ...
