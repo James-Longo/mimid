@@ -94,6 +94,8 @@
             <div id="advancedSettings" class="hidden"
                 style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
                 <input type="text" id="xcApiKey" class="search-input" placeholder="XC API Key" autocomplete="on">
+                <input type="text" id="eBirdApiKey" class="search-input" placeholder="eBird API Key" autocomplete="on"
+                    style="margin-top: 0.5rem;">
                 <p id="keyStatus" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.4rem;">Status:
                     Checking...</p>
             </div>
@@ -609,14 +611,35 @@
             }
         }
 
+        const eBirdApiKeyInput = document.getElementById('eBirdApiKey');
+
         async function init() {
             const keyStatus = document.getElementById('keyStatus');
             const storedXCKey = localStorage.getItem('mimid_xc_key');
+            const storedEBirdKey = localStorage.getItem('mimid_ebird_key');
+
             if (storedXCKey && storedXCKey !== "demo") {
                 xcApiKeyInput.value = storedXCKey;
+            }
+            if (storedEBirdKey) {
+                eBirdApiKeyInput.value = storedEBirdKey;
+                eBirdKey = storedEBirdKey;
+            }
+
+            if (storedXCKey || storedEBirdKey) {
                 keyStatus.innerText = "Status: Loaded from Browser Storage";
                 keyStatus.style.color = "#4ade80";
             }
+
+            // Sync inputs to storage and variables
+            eBirdApiKeyInput.oninput = () => {
+                eBirdKey = eBirdApiKeyInput.value.trim();
+                localStorage.setItem('mimid_ebird_key', eBirdKey);
+            };
+
+            xcApiKeyInput.oninput = () => {
+                localStorage.setItem('mimid_xc_key', xcApiKeyInput.value.trim());
+            };
 
             try {
                 const configRes = await fetch('config.json');
@@ -629,13 +652,23 @@
                         xcApiKeyInput.disabled = true;
                         xcApiKeyInput.style.opacity = "0.7";
                         localStorage.setItem('mimid_xc_key', xcKey);
-                        keyStatus.innerText = "Status: Active (System Secret)";
-                        keyStatus.style.color = "#4ade80";
                     }
 
-                    eBirdKey = configData['eBird-key'];
+                    const ebKey = configData['eBird-key'];
+                    if (ebKey && ebKey !== "PASTE_YOUR_KEY_HERE") {
+                        eBirdKey = ebKey;
+                        eBirdApiKeyInput.value = ebKey;
+                        eBirdApiKeyInput.disabled = true;
+                        eBirdApiKeyInput.style.opacity = "0.7";
+                        localStorage.setItem('mimid_ebird_key', ebKey);
+                    }
+
+                    keyStatus.innerText = "Status: Active (System Secret)";
+                    keyStatus.style.color = "#4ade80";
                 }
-            } catch (e) { }
+            } catch (e) {
+                console.log("No config.json found (likely static deployment). Using manual input or local storage.");
+            }
 
             // Load eBird Taxonomy mapping
             try {

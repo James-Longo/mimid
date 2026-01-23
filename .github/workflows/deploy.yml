@@ -26,7 +26,7 @@ jobs:
       
       - name: Create Config
         run: |
-          echo "{ \"key\": \"${{ secrets.XC_API_KEY }}\" }" > config.json
+          echo "{ \"xc-key\": \"${{ secrets.XC_API_KEY }}\", \"eBird-key\": \"${{ secrets.EBIRD_API_KEY }}\" }" > config.json
           
       - name: Setup Pages
         uses: actions/configure-pages@v4
