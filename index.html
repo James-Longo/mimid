@@ -269,7 +269,14 @@
         }
 
         function populateFamilyDropdown() {
-            const families = Array.from(new Set(SPECIES_LIST.map(s => s.family).filter(f => !!f)));
+            let list = SPECIES_LIST;
+            if (regionSpeciesPool) {
+                list = list.filter(s => regionSpeciesPool.has(s.sci));
+            }
+            const families = Array.from(new Set(list.map(s => s.family).filter(f => !!f)));
+
+            // Keep selected value if possible
+            const currentVal = familySelect.value;
             familySelect.innerHTML = '<option value="">Add a Family...</option>';
             families.sort().forEach((family) => {
                 const opt = document.createElement('option');
@@ -277,6 +284,7 @@
                 opt.innerText = family;
                 familySelect.appendChild(opt);
             });
+            if (families.includes(currentVal)) familySelect.value = currentVal;
         }
 
         async function getFamilySpecies(family) {
@@ -418,7 +426,13 @@
         speciesSearch.oninput = (e) => {
             const term = e.target.value.toLowerCase();
             if (term.length < 2) { speciesResults.classList.add('hidden'); return; }
-            const matches = SPECIES_LIST.filter(s => s.en.toLowerCase().includes(term) || s.sci.toLowerCase().includes(term)).slice(0, 10);
+
+            let sourceList = SPECIES_LIST;
+            if (regionSpeciesPool) {
+                sourceList = sourceList.filter(s => regionSpeciesPool.has(s.sci));
+            }
+
+            const matches = sourceList.filter(s => s.en.toLowerCase().includes(term) || s.sci.toLowerCase().includes(term)).slice(0, 10);
             speciesResults.innerHTML = '';
             if (matches.length === 0) { speciesResults.classList.add('hidden'); return; }
             matches.forEach(m => {
@@ -723,6 +737,7 @@
                                         regionSpeciesPool = new Set(rawData.map(code => ebirdToSci[code]).filter(n => !!n));
                                         console.log(`Loaded ${regionSpeciesPool.size} species for ${selectedRegionCode}`);
                                         refreshSpeciesList();
+                                        populateFamilyDropdown(); // Update dropdown based on new region data
                                         break;
                                     }
                                 }
