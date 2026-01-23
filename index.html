@@ -78,6 +78,15 @@
             </div>
 
             <button class="create-session-btn" id="createSessionBtn">Create Session</button>
+
+            <div id="speciesListSummary" class="settings-group" style="display: none;">
+                <h4 style="display: flex; justify-content: space-between; align-items: center;">
+                    Species List
+                    <span id="speciesCountBadge" class="filter-chip" style="margin: 0;">0</span>
+                </h4>
+                <p id="speciesListPreview"></p>
+            </div>
+
             <p id="poolStatus"
                 style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; height: 1.2em;">
             </p>
@@ -309,73 +318,33 @@
         toggleAdvanced.onclick = () => advancedSettings.classList.toggle('hidden');
 
         async function createSession() {
-            if (selectedFamilies.size === 0 && selectedSpecies.size === 0 && !selectedRegionCode) {
-                return alert("Select birds or a region first!");
+            // Calculate final list again to be absolutely sure
+            let finalSpecies = [];
+            let regionalSciNames = regionSpeciesPool;
+            let candidates = new Set(selectedSpecies);
+            selectedFamilies.forEach(fam => {
+                SPECIES_LIST.filter(s => s.family === fam).forEach(s => candidates.add(s.en));
+            });
+
+            if (candidates.size > 0) {
+                finalSpecies = Array.from(candidates).filter(en => {
+                    if (!regionalSciNames) return true;
+                    return regionalSciNames.has(EN_TO_SCI[en]);
+                });
+            } else if (regionalSciNames) {
+                finalSpecies = SPECIES_LIST.filter(s => regionalSciNames.has(s.sci)).map(s => s.en);
+            }
+
+            if (finalSpecies.length === 0) {
+                return alert("No species found for the selected criteria. Check your region/family overlap!");
             }
 
             loadingBanner.classList.remove('hidden');
             createSessionBtn.disabled = true;
             startBtn.classList.add('hidden');
 
-            let speciesList = [];
+            const speciesList = finalSpecies;
 
-            if (selectedRegionCode) {
-                loadingStatus.innerText = `Fetching eBird species list for region ${selectedRegionCode}...`;
-                try {
-                    const ebirdUrl = `https://api.ebird.org/v2/product/spplist/${selectedRegionCode}`;
-                    const proxies = ["https://corsproxy.io/?", "https://api.allorigins.win/get?url=", "https://api.codetabs.com/v1/proxy?url="];
-                    let regionSpeciesCodes = [];
-
-                    for (const proxy of proxies) {
-                        try {
-                            const res = await fetch(`${proxy}${encodeURIComponent(ebirdUrl)}`, {
-                                headers: { 'X-eBirdApiToken': eBirdKey }
-                            });
-                            if (res.ok) {
-                                const data = await res.json();
-                                regionSpeciesCodes = typeof data.contents === 'string' ? JSON.parse(data.contents) : data;
-                                break;
-                            }
-                        } catch (e) { console.error("Proxy failed for eBird", e); }
-                    }
-
-                    if (regionSpeciesCodes.length > 0) {
-                        const regionSciNames = new Set(regionSpeciesCodes.map(code => ebirdToSci[code]).filter(n => !!n));
-
-                        // If user selected specific birds, filter them by region. 
-                        // If user selected nothing but a region, we might want to pick a subset or all?
-                        // For now, let's just assume we filter the user's selection OR if they selected nothing, we take all birds from SPECIES_LIST that match the region.
-
-                        if (selectedFamilies.size > 0 || selectedSpecies.size > 0) {
-                            const userSelection = new Set(selectedSpecies);
-                            for (const f of selectedFamilies) (await getFamilySpecies(f)).forEach(s => userSelection.add(s));
-
-                            speciesList = Array.from(userSelection).filter(sp => {
-                                const sci = EN_TO_SCI[sp];
-                                return regionSciNames.has(sci);
-                            });
-                        } else {
-                            // Automatically select all birds from our database that are in the region
-                            speciesList = SPECIES_LIST.filter(s => regionSciNames.has(s.sci)).map(s => s.en);
-                        }
-                    }
-                } catch (e) {
-                    console.error("Failed to fetch eBird species list", e);
-                    alert("Error fetching region data. Proceeding without region filter.");
-                }
-            }
-
-            if (speciesList.length === 0) {
-                const toFetch = new Set(selectedSpecies);
-                for (const f of selectedFamilies) (await getFamilySpecies(f)).forEach(s => toFetch.add(s));
-                speciesList = Array.from(toFetch);
-            }
-
-            if (speciesList.length === 0) {
-                loadingBanner.classList.add('hidden');
-                createSessionBtn.disabled = false;
-                return alert("No species found for the selected criteria.");
-            }
 
             currentPool = [];
             let errorCount = 0;
@@ -418,6 +387,7 @@
                 chip.onclick = () => { selectedFamilies.delete(fam); renderSelectedFamilies(); };
                 selectedFamiliesList.appendChild(chip);
             });
+            refreshSpeciesList();
         }
 
         familySelect.onchange = (e) => {
@@ -449,6 +419,7 @@
                 chip.onclick = () => { selectedSpecies.delete(sp); renderSelectedSpecies(); };
                 selectedSpeciesList.appendChild(chip);
             });
+            refreshSpeciesList();
         }
 
         startBtn.onclick = () => {
@@ -584,6 +555,59 @@
         let ebirdToSci = {};
         let regionsData = {};
         let selectedRegionCode = "";
+        let regionSpeciesPool = null; // Set of Scientific Names
+
+        function refreshSpeciesList() {
+            const summaryDiv = document.getElementById('speciesListSummary');
+            const countBadge = document.getElementById('speciesCountBadge');
+            const previewPara = document.getElementById('speciesListPreview');
+
+            if (selectedFamilies.size === 0 && selectedSpecies.size === 0 && !selectedRegionCode) {
+                summaryDiv.style.display = 'none';
+                return;
+            }
+
+            summaryDiv.style.display = 'block';
+
+            let pool = [];
+
+            // 1. Determine the base scientific names from eBird (if region selected)
+            let regionalSciNames = regionSpeciesPool;
+
+            // 2. Identify candidate species (English names) from Families and Custom selection
+            let candidates = new Set(selectedSpecies);
+            selectedFamilies.forEach(fam => {
+                SPECIES_LIST.filter(s => s.family === fam).forEach(s => candidates.add(s.en));
+            });
+
+            if (selectedRegionCode && !regionalSciNames) {
+                // We have a region but haven't fetched the pool yet
+                countBadge.innerText = "...";
+                previewPara.innerText = "Fetching regional data...";
+                return;
+            }
+
+            if (candidates.size > 0) {
+                // Intersection logic: If families/species are selected, they MUST be in the region (if region is set)
+                pool = Array.from(candidates).filter(en => {
+                    if (!regionalSciNames) return true; // No region filter, keep all
+                    const sci = EN_TO_SCI[en];
+                    return regionalSciNames.has(sci);
+                });
+            } else if (regionalSciNames) {
+                // Only region is selected, show all birds in our DB that are in that region
+                pool = SPECIES_LIST.filter(s => regionalSciNames.has(s.sci)).map(s => s.en);
+            }
+
+            countBadge.innerText = pool.length;
+            previewPara.innerText = pool.sort().join(', ');
+
+            if (pool.length === 0) {
+                countBadge.style.background = 'var(--danger)';
+            } else {
+                countBadge.style.background = 'var(--accent)';
+            }
+        }
 
         async function init() {
             const keyStatus = document.getElementById('keyStatus');
@@ -644,6 +668,7 @@
             const regionResults = document.getElementById('regionResults');
 
             regionSource.onchange = () => {
+                regionSpeciesPool = null;
                 if (regionSource.value) {
                     regionSearchContainer.classList.remove('hidden');
                     regionSearchInput.value = "";
@@ -652,6 +677,7 @@
                     regionSearchContainer.classList.add('hidden');
                     selectedRegionCode = "";
                 }
+                refreshSpeciesList();
             };
 
             regionSearchInput.oninput = (e) => {
@@ -665,10 +691,33 @@
                     const item = document.createElement('div');
                     item.className = 'dropdown-item';
                     item.innerText = `${m.name} (${m.code})`;
-                    item.onclick = () => {
+                    item.onclick = async () => {
                         regionSearchInput.value = m.name;
                         selectedRegionCode = m.code;
                         regionResults.classList.add('hidden');
+
+                        // Immediate Fetch
+                        regionSpeciesPool = null;
+                        refreshSpeciesList();
+
+                        const ebirdUrl = `https://api.ebird.org/v2/product/spplist/${selectedRegionCode}?key=${eBirdKey}`;
+                        const proxies = ["https://corsproxy.io/?", "https://api.allorigins.win/get?url=", "https://api.codetabs.com/v1/proxy?url="];
+
+                        for (const proxy of proxies) {
+                            try {
+                                const res = await fetch(`${proxy}${encodeURIComponent(ebirdUrl)}`);
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    let rawData = (data && data.contents) ? (typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents) : data;
+                                    if (Array.isArray(rawData)) {
+                                        regionSpeciesPool = new Set(rawData.map(code => ebirdToSci[code]).filter(n => !!n));
+                                        console.log(`Loaded ${regionSpeciesPool.size} species for ${selectedRegionCode}`);
+                                        refreshSpeciesList();
+                                        break;
+                                    }
+                                }
+                            } catch (e) { console.error("eBird fetch failed", e); }
+                        }
                     };
                     regionResults.appendChild(item);
                 });

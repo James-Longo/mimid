@@ -11,7 +11,7 @@ test('mimid ebird region filtering', async ({ page }) => {
     // 2. Search and select region (New York)
     const regionSearch = page.locator('#regionSearch');
     await regionSearch.fill('New York');
-    await page.locator('.dropdown-item').first().click();
+    await page.locator('.dropdown-item:has-text("New York")').first().click();
 
     // 3. Select Vocalization Type
     const typeSelect = page.locator('#globalType');

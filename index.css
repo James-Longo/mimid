@@ -47,6 +47,7 @@ h1 {
     font-size: 3.5rem;
     background: linear-gradient(to right, #818cf8, #c084fc);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.5rem;
 }
@@ -486,4 +487,46 @@ button:hover {
 
 .advanced-toggle:hover {
     opacity: 1;
+}
+
+/* Species List Summary Area */
+#speciesListSummary {
+    animation: fadeIn 0.3s ease-in-out;
+    max-height: 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+#speciesListPreview {
+    font-family: 'Inter', sans-serif;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    max-height: 120px;
+    overflow-y: auto;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+#speciesListPreview::-webkit-scrollbar {
+    width: 4px;
+}
+
+#speciesListPreview::-webkit-scrollbar-thumb {
+    background: var(--accent-primary);
+    border-radius: 2px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
