@@ -690,27 +690,46 @@
                 SPECIES_LIST.forEach(s => { if (s.sci) SCI_TO_FAMILY[s.sci] = s.family; if (s.en) EN_TO_SCI[s.en] = s.sci; });
                 ebirdToSci = mappingData;
 
-                // Update UI with loaded data
-                if (Config.keys.xc) xcApiKeyInput.value = Config.keys.xc;
+                // Set global key for logic usage
                 if (Config.keys.ebird) {
-                    eBirdApiKeyInput.value = Config.keys.ebird;
                     eBirdKey = Config.keys.ebird;
                 }
-                if (Config.proxyUrl) proxyUrlInput.value = Config.proxyUrl;
 
                 keyStatus.innerText = `Status: ${Config.status}`;
                 if (Config.status !== 'Checking...') {
                     keyStatus.style.color = "#4ade80";
                 }
 
-                // UI Feedback and Locking
+                // UI Feedback and Locking - NEVER SHOW SECRETS IN PLAIN TEXT
                 if (Config.status.includes("Proxy")) {
-                    xcApiKeyInput.disabled = true; xcApiKeyInput.style.opacity = "0.5";
-                    eBirdApiKeyInput.disabled = true; eBirdApiKeyInput.style.opacity = "0.5";
+                    xcApiKeyInput.value = "Managed by Secure Proxy";
+                    xcApiKeyInput.disabled = true;
+                    xcApiKeyInput.style.opacity = "0.5";
+
+                    eBirdApiKeyInput.value = "Managed by Secure Proxy";
+                    eBirdApiKeyInput.disabled = true;
+                    eBirdApiKeyInput.style.opacity = "0.5";
+
+                    if (Config.proxyUrl) proxyUrlInput.value = Config.proxyUrl;
+
                 } else if (Config.status === "Active (System Secret)") {
-                    xcApiKeyInput.disabled = true; xcApiKeyInput.style.opacity = "0.7";
-                    eBirdApiKeyInput.disabled = true; eBirdApiKeyInput.style.opacity = "0.7";
-                    proxyUrlInput.disabled = true; proxyUrlInput.style.opacity = "0.7";
+                    xcApiKeyInput.value = "****************"; // Masked
+                    xcApiKeyInput.disabled = true;
+                    xcApiKeyInput.style.opacity = "0.7";
+
+                    eBirdApiKeyInput.value = "****************"; // Masked
+                    eBirdApiKeyInput.disabled = true;
+                    eBirdApiKeyInput.style.opacity = "0.7";
+
+                    proxyUrlInput.value = "";
+                    proxyUrlInput.disabled = true;
+                    proxyUrlInput.style.opacity = "0.7";
+
+                } else {
+                    // Browser Storage - User entered these, so we can show them for editing
+                    if (Config.keys.xc) xcApiKeyInput.value = Config.keys.xc;
+                    if (Config.keys.ebird) eBirdApiKeyInput.value = Config.keys.ebird;
+                    if (Config.proxyUrl) proxyUrlInput.value = Config.proxyUrl;
                 }
 
                 // Wait for regions and process them
