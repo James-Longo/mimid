@@ -10,6 +10,10 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap"
         rel="stylesheet">
+    <script src="config.js"></script>
+    <!-- Tests (Remove in production) -->
+    <script src="tests_v2/test_runner.js"></script>
+    <script src="tests_v2/integration_tests.js"></script>
 </head>
 
 <body>
@@ -92,6 +96,9 @@
                     <input type="text" id="xcApiKey" class="search-input" placeholder="XC API Key" autocomplete="on">
                     <input type="text" id="eBirdApiKey" class="search-input" placeholder="eBird API Key"
                         autocomplete="on" style="margin-top: 0.5rem;">
+                    <input type="text" id="proxyUrl" class="search-input"
+                        placeholder="Secure Proxy URL (e.g. https://my-proxy.workers.dev)" autocomplete="on"
+                        style="margin-top: 0.5rem;">
                     <p id="keyStatus" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.4rem;">Status:
                         Checking...</p>
                 </div>
@@ -202,29 +209,51 @@
             if (speciesMetadataCache.has(species)) return speciesMetadataCache.get(species);
 
             const sciName = EN_TO_SCI[species] || species;
-            const apiKey = xcApiKeyInput.value.trim() || 'demo';
             const maskKey = (key) => key.length > 8 ? key.substring(0, 4) + '...' + key.substring(key.length - 4) : '****';
 
             let q = `sp:"${sciName}" q:A len:10-60`;
             const gType = globalTypeInput.value.trim();
             if (gType) q += ` type:"${gType}"`;
 
-            console.log(`Fetching XC data for ${species}: [${q}] (Key: ${maskKey(apiKey)})`);
-
             const tryFetch = async (proxyBase) => {
-                const xcUrl = `https://xeno-canto.org/api/3/recordings?query=${encodeURIComponent(q)}&key=${apiKey}`;
-                const response = await fetch(`${proxyBase}${encodeURIComponent(xcUrl)}`);
+                let url;
+                if (Config.proxyUrl) {
+                    url = `${Config.proxyUrl.replace(/\/$/, '')}/api/xc?query=${encodeURIComponent(q)}`;
+                    console.log(`Fetching XC data for ${species} via Secure Proxy`);
+                } else {
+                    const apiKey = Config.keys.xc || xcApiKeyInput.value.trim() || 'demo';
+                    url = `${proxyBase}${encodeURIComponent(`https://xeno-canto.org/api/3/recordings?query=${encodeURIComponent(q)}&key=${apiKey}`)}`;
+                    console.log(`Fetching XC data for ${species}: [${q}] (Key: ****)`);
+                }
+                const response = await fetch(url);
                 if (!response.ok) throw new Error(`Status ${response.status}`);
                 const wrapper = await response.json();
                 return typeof wrapper.contents === 'string' ? JSON.parse(wrapper.contents) : wrapper;
             };
 
-            const proxies = ["https://corsproxy.io/?", "https://api.allorigins.win/get?url=", "https://api.codetabs.com/v1/proxy?url="];
+            const CORS_PROXIES = ["https://corsproxy.io/?", "https://api.allorigins.win/get?url=", "https://api.codetabs.com/v1/proxy?url="];
 
             try {
                 let lastErr = null;
                 for (let attempt = 0; attempt < 2; attempt++) {
-                    for (const proxy of proxies) {
+                    // If we have a proxy, we only try it once without CORS proxies
+                    if (Config.proxyUrl) {
+                        try {
+                            const data = await tryFetch("");
+                            if (data.recordings) {
+                                data.recordings.forEach(rec => {
+                                    const sci = `${rec.gen || ''} ${rec.sp || ''}`.trim();
+                                    if (SCI_TO_FAMILY[sci]) rec.family = SCI_TO_FAMILY[sci];
+                                });
+                                speciesMetadataCache.set(species, data.recordings);
+                                return data.recordings;
+                            }
+                        } catch (e) {
+                            console.error("Proxy fetch failed:", e);
+                        }
+                    }
+
+                    for (const proxy of CORS_PROXIES) {
                         try {
                             const data = await tryFetch(proxy);
                             if (data.error) {
@@ -634,71 +663,88 @@
 
         // ... init function ...
         async function init() {
-            // ... existing key loading ...
             const keyStatus = document.getElementById('keyStatus');
-            const eBirdApiKeyInput = document.getElementById('eBirdApiKey'); // Defined here in scope
-            const storedXCKey = localStorage.getItem('mimid_xc_key');
-            const storedEBirdKey = localStorage.getItem('mimid_ebird_key');
-            // ... (keep key loading logic) ...
-            if (storedXCKey && storedXCKey !== "demo") { xcApiKeyInput.value = storedXCKey; }
-            if (storedEBirdKey) { eBirdApiKeyInput.value = storedEBirdKey; eBirdKey = storedEBirdKey; }
-            if (storedXCKey || storedEBirdKey) { keyStatus.innerText = "Status: Loaded from Browser Storage"; keyStatus.style.color = "#4ade80"; }
+            const eBirdApiKeyInput = document.getElementById('eBirdApiKey');
+            const proxyUrlInput = document.getElementById('proxyUrl');
 
-            eBirdApiKeyInput.oninput = () => { eBirdKey = eBirdApiKeyInput.value.trim(); localStorage.setItem('mimid_ebird_key', eBirdKey); };
-            xcApiKeyInput.oninput = () => { localStorage.setItem('mimid_xc_key', xcApiKeyInput.value.trim()); };
-
-            try {
-                const configRes = await fetch('config.json');
-                if (configRes.ok) {
-                    const configData = await configRes.json();
-                    const xcKey = configData['xc-key'] || configData.key;
-                    if (xcKey && xcKey !== "PASTE_YOUR_KEY_HERE") {
-                        xcApiKeyInput.value = xcKey; xcApiKeyInput.disabled = true; xcApiKeyInput.style.opacity = "0.7"; localStorage.setItem('mimid_xc_key', xcKey);
-                    }
-                    const ebKey = configData['eBird-key'];
-                    if (ebKey && ebKey !== "PASTE_YOUR_KEY_HERE") {
-                        eBirdKey = ebKey; eBirdApiKeyInput.value = ebKey; eBirdApiKeyInput.disabled = true; eBirdApiKeyInput.style.opacity = "0.7"; localStorage.setItem('mimid_ebird_key', ebKey);
-                    }
-                    keyStatus.innerText = "Status: Active (System Secret)"; keyStatus.style.color = "#4ade80";
-                }
-            } catch (e) { console.log("No config.json found."); }
-
-
-            // Load eBird Taxonomy mapping
-            try {
-                const mappingRes = await fetch('ebird_to_sci.json');
-                if (mappingRes.ok) { ebirdToSci = await mappingRes.json(); }
-            } catch (e) { console.error("Failed to load eBird taxonomy mapping", e); }
-
-            // Load and Unify Region CSVs
-            const regionFiles = [
-                { file: 'us-states', type: 'US State' },
-                { file: 'ca-provinces', type: 'CA Province' },
-                { file: 'countries', type: 'Country' }
+            // 1. Start all initial fetches concurrently
+            const configPromise = Config.init();
+            const speciesPromise = fetch('all_species.json').then(r => r.json());
+            const mappingPromise = fetch('ebird_to_sci.json').then(r => r.ok ? r.json() : {});
+            const regionPromises = [
+                fetch('regions/us-states.csv').then(r => r.ok ? r.text() : ""),
+                fetch('regions/ca-provinces.csv').then(r => r.ok ? r.text() : ""),
+                fetch('regions/countries.csv').then(r => r.ok ? r.text() : "")
             ];
 
-            for (const item of regionFiles) {
-                try {
-                    const res = await fetch(`regions/${item.file}.csv`);
-                    if (res.ok) {
-                        const csvText = await res.text();
-                        const lines = csvText.split('\n').slice(1);
-                        lines.forEach(line => {
-                            if (!line.trim()) return;
-                            const [code, name] = line.split(',');
-                            allRegions.push({
-                                code: code.trim().replace(/"/g, ''),
-                                name: name.trim().replace(/"/g, ''),
-                                type: item.type
-                            });
+            try {
+                // Wait for critical data first
+                const [configKeys, speciesData, mappingData] = await Promise.all([
+                    configPromise,
+                    speciesPromise,
+                    mappingPromise
+                ]);
+
+                // Update Globals
+                SPECIES_LIST = speciesData;
+                SPECIES_LIST.forEach(s => { if (s.sci) SCI_TO_FAMILY[s.sci] = s.family; if (s.en) EN_TO_SCI[s.en] = s.sci; });
+                ebirdToSci = mappingData;
+
+                // Update UI with loaded data
+                if (Config.keys.xc) xcApiKeyInput.value = Config.keys.xc;
+                if (Config.keys.ebird) {
+                    eBirdApiKeyInput.value = Config.keys.ebird;
+                    eBirdKey = Config.keys.ebird;
+                }
+                if (Config.proxyUrl) proxyUrlInput.value = Config.proxyUrl;
+
+                keyStatus.innerText = `Status: ${Config.status}`;
+                if (Config.status !== 'Checking...') {
+                    keyStatus.style.color = "#4ade80";
+                }
+
+                // UI Feedback and Locking
+                if (Config.status.includes("Proxy")) {
+                    xcApiKeyInput.disabled = true; xcApiKeyInput.style.opacity = "0.5";
+                    eBirdApiKeyInput.disabled = true; eBirdApiKeyInput.style.opacity = "0.5";
+                } else if (Config.status === "Active (System Secret)") {
+                    xcApiKeyInput.disabled = true; xcApiKeyInput.style.opacity = "0.7";
+                    eBirdApiKeyInput.disabled = true; eBirdApiKeyInput.style.opacity = "0.7";
+                    proxyUrlInput.disabled = true; proxyUrlInput.style.opacity = "0.7";
+                }
+
+                // Wait for regions and process them
+                const regionTexts = await Promise.all(regionPromises);
+                const regionTypes = ['US State', 'CA Province', 'Country'];
+                regionTexts.forEach((csvText, idx) => {
+                    if (!csvText) return;
+                    const lines = csvText.split('\n').slice(1);
+                    lines.forEach(line => {
+                        if (!line.trim()) return;
+                        const [code, name] = line.split(',');
+                        allRegions.push({
+                            code: code.trim().replace(/"/g, ''),
+                            name: name.trim().replace(/"/g, ''),
+                            type: regionTypes[idx]
                         });
-                    }
-                } catch (e) { console.error(`Failed to load region file ${item.file}`, e); }
+                    });
+                });
+
+            } catch (e) {
+                console.error("Initialization failed:", e);
+                loadingOverlay.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
+                return;
             }
 
+            // Finally, hide loading overlay and setup listeners
+            loadingOverlay.classList.add('hidden');
+            populateFamilyDropdown();
+
+            eBirdApiKeyInput.oninput = () => { eBirdKey = eBirdApiKeyInput.value.trim(); Config.setEBirdKey(eBirdKey); };
+            xcApiKeyInput.oninput = () => { Config.setXCKey(xcApiKeyInput.value.trim()); };
+            proxyUrlInput.oninput = () => { Config.setProxyUrl(proxyUrlInput.value.trim()); };
+
             // Unified Region Search
-            const regionSearchContainer = document.getElementById('regionSearchContainer'); // Wrapper (removed in HTML, need to check if wrapper exists or if used directly)
-            // Actually in new HTML, wrapper is div with class relative.
             const regionSearchInput = document.getElementById('regionSearch');
             const regionResults = document.getElementById('regionResults');
 
@@ -724,30 +770,38 @@
                         regionSpeciesPool = null;
                         refreshSpeciesList();
 
-                        const ebirdUrl = `https://api.ebird.org/v2/product/spplist/${selectedRegionCode}?key=${eBirdKey}`;
-                        const proxies = ["https://corsproxy.io/?", "https://api.allorigins.win/get?url=", "https://api.codetabs.com/v1/proxy?url="];
+                        const tryFetchEBird = async () => {
+                            if (Config.proxyUrl) {
+                                const url = `${Config.proxyUrl.replace(/\/$/, '')}/api/ebird?region=${selectedRegionCode}`;
+                                console.log(`Fetching eBird data for ${selectedRegionCode} via Secure Proxy`);
+                                const res = await fetch(url);
+                                if (res.ok) return await res.json();
+                            } else {
+                                const eBirdKeyToUse = Config.keys.ebird || eBirdKey;
+                                const ebirdUrl = `https://api.ebird.org/v2/product/spplist/${selectedRegionCode}?key=${eBirdKeyToUse}`;
+                                const proxies = ["https://corsproxy.io/?", "https://api.allorigins.win/get?url=", "https://api.codetabs.com/v1/proxy?url="];
 
-                        for (const proxy of proxies) {
-                            try {
-                                const res = await fetch(`${proxy}${encodeURIComponent(ebirdUrl)}`);
-                                if (res.ok) {
-                                    const data = await res.json();
-                                    let rawData = (data && data.contents) ? (typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents) : data;
-                                    if (Array.isArray(rawData)) {
-                                        regionSpeciesPool = new Set(rawData.map(code => ebirdToSci[code]).filter(n => !!n));
-                                        console.log(`Loaded ${regionSpeciesPool.size} species for ${selectedRegionCode}`);
-                                        refreshSpeciesList();
-                                        populateFamilyDropdown(); // Update dropdown based on new region data
-                                        break;
-                                    }
+                                for (const proxy of proxies) {
+                                    try {
+                                        const res = await fetch(`${proxy}${encodeURIComponent(ebirdUrl)}`);
+                                        if (res.ok) {
+                                            const data = await res.json();
+                                            return (data && data.contents) ? (typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents) : data;
+                                        }
+                                    } catch (e) { }
                                 }
-                            } catch (e) { console.error("eBird fetch failed", e); }
-                        }
+                            }
+                            return null;
+                        };
 
-                        // If we finished the loop and still no data
-                        if (!regionSpeciesPool) {
-                            console.error("Failed to load eBird data from all proxies");
-                            // Set to empty set so UI stops spinning and shows 0 matches
+                        const rawData = await tryFetchEBird();
+                        if (Array.isArray(rawData)) {
+                            regionSpeciesPool = new Set(rawData.map(code => ebirdToSci[code]).filter(n => !!n));
+                            console.log(`Loaded ${regionSpeciesPool.size} species for ${selectedRegionCode}`);
+                            refreshSpeciesList();
+                            populateFamilyDropdown();
+                        } else {
+                            console.error("Failed to load eBird data");
                             regionSpeciesPool = new Set();
                             refreshSpeciesList();
                             alert("Failed to load regional data. Please check your internet connection or try another region.");
@@ -757,18 +811,6 @@
                 });
                 regionResults.classList.remove('hidden');
             };
-
-            // Load Species DB
-            try {
-                const res = await fetch('all_species.json');
-                if (!res.ok) throw new Error("Could not load species database");
-                SPECIES_LIST = await res.json();
-                SPECIES_LIST.forEach(s => { if (s.sci) SCI_TO_FAMILY[s.sci] = s.family; if (s.en) EN_TO_SCI[s.en] = s.sci; });
-                loadingOverlay.classList.add('hidden');
-                populateFamilyDropdown();
-            } catch (e) {
-                loadingOverlay.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
-            }
         }
 
         init();
